@@ -31,11 +31,13 @@ class IDField(StringField):
 
     @tornado.gen.coroutine
     def to_internal_value(self, value):
-        if value:
+        if value is not None:
             try:
                 raise tornado.gen.Return(ObjectId(value))
             except bson.errors.InvalidId:
-                self.fail('invalid')
+                raise tornado.gen.Return(None)
+
+        raise tornado.gen.Return(None)
 
     @tornado.gen.coroutine
     def to_representation(self, value):
@@ -98,12 +100,12 @@ class ForeignKeyField(Field):
         if not value or isinstance(value, str):
             raise tornado.gen.Return(value)
         elif not isinstance(value, self.related_model):
-            self.fail('invalid')
+            raise tornado.gen.Return(None)
 
         value = getattr(value, self.related_field)
 
         if self.related_field == '_id':
-            return str(value)
+            raise tornado.gen.Return(str(value))
 
         raise tornado.gen.Return(value)
 

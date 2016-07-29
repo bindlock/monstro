@@ -406,13 +406,7 @@ class IDFieldTest(monstro.testing.AsyncTestCase):
     def test_to_internal_value__from_string_error(self):
         field = IDField()
 
-        with self.assertRaises(ValidationError) as context:
-            yield field.to_internal_value('blackjack')
-
-        self.assertEqual(
-            context.exception.error,
-            IDField.default_error_messages['invalid']
-        )
+        self.assertEqual(None, (yield field.to_internal_value('wrong')))
 
     @tornado.testing.gen_test
     def test_validate__error(self):
@@ -519,13 +513,7 @@ class ForeignKeyFieldTest(monstro.testing.AsyncTestCase):
     def test_to_internal_value__invalid(self):
         field = ForeignKeyField(related_model=self.model)
 
-        with self.assertRaises(ValidationError) as context:
-            yield field.to_internal_value(field)
-
-        self.assertEqual(
-            context.exception.error,
-            ForeignKeyField.default_error_messages['invalid'].format(field)
-        )
+        self.assertEqual(None, (yield field.to_internal_value(field)))
 
     @tornado.testing.gen_test
     def test_validate__from_key(self):

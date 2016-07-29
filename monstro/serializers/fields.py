@@ -186,13 +186,16 @@ class NumericField(TypedField):
     @tornado.gen.coroutine
     def to_internal_value(self, value):
         try:
-            return self.type(value)
+            raise tornado.gen.Return(self.type(value))
         except (TypeError, ValueError):
-            self.fail('invalid')
+            raise tornado.gen.Return(None)
 
     @tornado.gen.coroutine
     def is_valid(self, value):
         value = yield self.to_internal_value(value)
+
+        if value is None:
+            self.fail('invalid')
 
         if self.min_value is not None and value < self.min_value:
             self.fail('min_value')
@@ -256,16 +259,16 @@ class ArrayField(TypedField):
 
     @tornado.gen.coroutine
     def to_internal_value(self, value):
-        yield super().is_valid(value)
+        try:
+            yield self.is_valid(value)
+        except ValidationError:
+            raise tornado.gen.Return(None)
 
         if self.field:
             values = []
 
-            for index, item in enumerate(value):
-                try:
-                    values.append((yield self.field.to_internal_value(item)))
-                except ValidationError as e:
-                    self.fail('child', index=index, message=e.error)
+            for item in value:
+                values.append((yield self.field.to_internal_value(item)))
 
             raise tornado.gen.Return(values)
 
@@ -276,8 +279,11 @@ class ArrayField(TypedField):
         yield super().is_valid(value)
 
         if self.field:
-            for item in value:
-                self.field.validate(item)
+            for index, item in enumerate(value):
+                try:
+                    yield self.field.validate(item)
+                except ValidationError as e:
+                    self.fail('child', index=index, message=e.error)
 
 
 class MultipleChoiceField(ArrayField, ChoiceField):
@@ -371,7 +377,7 @@ class MapField(Field):
             try:
                 value = json.loads(value)
             except (ValueError, TypeError):
-                self.fail('invalid')
+                raise tornado.gen.Return(None)
 
         raise tornado.gen.Return(value)
 

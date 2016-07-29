@@ -474,6 +474,12 @@ class ArrayFieldTest(monstro.testing.AsyncTestCase):
         )
 
     @tornado.testing.gen_test
+    def test_to_internal_value__invalid(self):
+        field = fields.ArrayField()
+
+        self.assertEqual(None, (yield field.to_internal_value('wrong')))
+
+    @tornado.testing.gen_test
     def test_validate__invalid_item(self):
         field = fields.ArrayField(default=['j'], field=fields.IntegerField())
 
@@ -588,13 +594,7 @@ class MapFieldTest(monstro.testing.AsyncTestCase):
     def test_to_internal_value__invalid_json(self):
         field = fields.MapField()
 
-        with self.assertRaises(exceptions.ValidationError) as context:
-            yield field.to_internal_value('wrong')
-
-        self.assertEqual(
-            context.exception.error,
-            fields.MapField.default_error_messages['invalid'].format(field)
-        )
+        self.assertEqual(None, (yield field.to_internal_value('wrong')))
 
     @tornado.testing.gen_test
     def test_validate__invalid_type(self):
