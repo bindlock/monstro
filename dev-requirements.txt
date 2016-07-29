@@ -1,0 +1,6 @@
+coverage
+coveralls
+tox
+nose
+
+-r requirements.txt
