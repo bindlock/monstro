@@ -167,7 +167,10 @@ class StringField(TypedField):
 
     @tornado.gen.coroutine
     def to_internal_value(self, value):
-        raise tornado.gen.Return(str(value))
+        if value is not None:
+            raise tornado.gen.Return(str(value))
+
+        raise tornado.gen.Return(value)
 
 
 class NumericField(TypedField):

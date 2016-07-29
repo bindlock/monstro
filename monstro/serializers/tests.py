@@ -291,6 +291,12 @@ class StringFieldTest(monstro.testing.AsyncTestCase):
             )
         )
 
+    @tornado.testing.gen_test
+    def test_to_internal_value__none(self):
+        field = fields.StringField()
+
+        self.assertEqual(None, (yield field.to_internal_value(None)))
+
 
 class IntegerFieldTest(monstro.testing.AsyncTestCase):
 
