@@ -32,9 +32,7 @@ class QuerySet(object):
             item = self.cursor.next_object()
             instance = (yield self.construct([item]))[0]
 
-            raise tornado.gen.Return(instance)
-        else:
-            raise tornado.gen.Return(None)
+            return instance
 
     def filter(self, **query):
         cursor = get_database()[self.model.__collection__]
@@ -44,19 +42,19 @@ class QuerySet(object):
     @tornado.gen.coroutine
     def first(self):
         self.filter().limit(1).sort('_id', 1)
-        raise tornado.gen.Return((yield self.next()))
+        return (yield self.next())
 
     @tornado.gen.coroutine
     def last(self):
         self.filter().limit(1).sort('_id', -1)
-        raise tornado.gen.Return((yield self.next()))
+        return (yield self.next())
 
     @tornado.gen.coroutine
     def all(self, length=None):
         if length:
             items = yield self.cursor.to_list(length)
             self.items = yield self.construct(items)
-            raise tornado.gen.Return(self.items)
+            return self.items
 
         while True:
             item = yield self.next()
@@ -66,24 +64,24 @@ class QuerySet(object):
             else:
                 break
 
-        raise tornado.gen.Return(self.items)
+        return self.items
 
     @tornado.gen.coroutine
     def __getitem__(self, sliced):
         if self.items:
-            raise tornado.gen.Return(self.items[sliced])
+            return self.items[sliced]
 
         if isinstance(sliced, slice):
             if sliced.start is not None and sliced.stop is not None:
                 self.cursor.skip(sliced.start)
                 instances = yield self.all(sliced.stop - sliced.start)
-                raise tornado.gen.Return(instances)
+                return instances
             elif sliced.start is not None:
                 self.cursor.skip(sliced.start)
             elif sliced.stop is not None:
                 self.cursor.limit(sliced.stop)
         else:
             data = yield self.all()
-            raise tornado.gen.Return(data[sliced])
+            return data[sliced]
 
-        raise tornado.gen.Return(self)
+        return self

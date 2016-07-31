@@ -156,7 +156,7 @@ class ModelAPIHandler(APIHandler, metaclass=MetaModelAPIHandler):
                 404, details={'request_error': 'Object not found'}
             )
 
-        raise tornado.gen.Return(instance)
+        return instance
 
     @tornado.gen.coroutine
     def options(self, *args, **kwargs):

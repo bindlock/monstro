@@ -26,4 +26,4 @@ class TokenAuthentication(Authentication):
         except self.model.DoesNotExist:
             instance = None
 
-        raise tornado.gen.Return(instance)
+        return instance

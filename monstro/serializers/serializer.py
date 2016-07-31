@@ -84,7 +84,7 @@ class Serializer(object, metaclass=MetaSerializer):
             value = self.__values__.get(name, field.default)
             data[name] = yield field.to_internal_value(value)
 
-        raise tornado.gen.Return(data)
+        return data
 
     @classmethod
     @tornado.gen.coroutine
@@ -94,11 +94,11 @@ class Serializer(object, metaclass=MetaSerializer):
         for field in cls.__fields__.values():
             meta.append((yield field.get_metadata()))
 
-        raise tornado.gen.Return(meta)
+        return meta
 
     @tornado.gen.coroutine
     def get_data(self):
-        raise tornado.gen.Return((yield self.to_internal_value()))
+        return (yield self.to_internal_value())
 
     @tornado.gen.coroutine
     def construct(self):
@@ -125,4 +125,4 @@ class Serializer(object, metaclass=MetaSerializer):
         if errors:
             raise exceptions.ValidationError(errors)
 
-        raise tornado.gen.Return(copy.copy(self.__values__))
+        return copy.copy(self.__values__)

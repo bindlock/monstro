@@ -50,7 +50,7 @@ class Pagination(object):
 
         self.data['items'] = items
 
-        raise tornado.gen.Return(self.data)
+        return self.data
 
 
 class PageNumberPagination(Pagination):

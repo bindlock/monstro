@@ -38,7 +38,7 @@ def _import_settings_class():
             )
         )
 
-    raise tornado.gen.Return(settings_class)
+    return settings_class
 
 io_loop = tornado.ioloop.IOLoop.current()
 settings = io_loop.run_sync(_import_settings_class)

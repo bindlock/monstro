@@ -33,15 +33,15 @@ class IDField(StringField):
     def to_internal_value(self, value):
         if value is not None:
             try:
-                raise tornado.gen.Return(ObjectId(value))
+                return ObjectId(value)
             except bson.errors.InvalidId:
-                raise tornado.gen.Return(None)
+                return None
 
-        raise tornado.gen.Return(None)
+        return None
 
     @tornado.gen.coroutine
     def to_representation(self, value):
-        raise tornado.gen.Return((yield self.to_internal_value(value)))
+        return (yield self.to_internal_value(value))
 
 
 class ForeignKeyField(Field):
@@ -76,7 +76,7 @@ class ForeignKeyField(Field):
             except self.related_model.DoesNotExist:
                 self.fail('foreign_key')
 
-        raise tornado.gen.Return(value)
+        return value
 
     @tornado.gen.coroutine
     def is_valid(self, value):
@@ -93,21 +93,21 @@ class ForeignKeyField(Field):
         except self.related_model.DoesNotExist:
             self.fail('foreign_key')
 
-        raise tornado.gen.Return(value)
+        return value
 
     @tornado.gen.coroutine
     def to_internal_value(self, value):
         if not value or isinstance(value, str):
-            raise tornado.gen.Return(value)
+            return value
         elif not isinstance(value, self.related_model):
-            raise tornado.gen.Return(None)
+            return None
 
         value = getattr(value, self.related_field)
 
         if self.related_field == '_id':
-            raise tornado.gen.Return(str(value))
+            return str(value)
 
-        raise tornado.gen.Return(value)
+        return value
 
     @tornado.gen.coroutine
     def get_metadata(self):
@@ -119,4 +119,4 @@ class ForeignKeyField(Field):
 
         self.widget = inputs.Select(choices)
 
-        raise tornado.gen.Return((yield super().get_metadata()))
+        return (yield super().get_metadata())

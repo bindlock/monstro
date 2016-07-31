@@ -74,7 +74,6 @@ class Model(Serializer, metaclass=MetaModel):
             data = yield self.__cursor__.find_one({'_id': self._id})
 
             self.__values__.update(data)
-            print(self.__values__)
 
             yield self.construct()
 

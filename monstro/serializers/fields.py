@@ -83,7 +83,7 @@ class Field(object):
             if instance and model and instance._id != model._id:
                 self.fail('unique')
 
-        raise tornado.gen.Return((yield self.to_internal_value(value)))
+        return (yield self.to_internal_value(value))
 
     def fail(self, error_code, **kwargs):
         raise ValidationError(
@@ -97,11 +97,11 @@ class Field(object):
 
     @tornado.gen.coroutine
     def to_representation(self, value):
-        raise tornado.gen.Return(value)
+        return value
 
     @tornado.gen.coroutine
     def to_internal_value(self, value):
-        raise tornado.gen.Return(value)
+        return value
 
     @tornado.gen.coroutine
     def get_metadata(self):
@@ -168,9 +168,9 @@ class StringField(TypedField):
     @tornado.gen.coroutine
     def to_internal_value(self, value):
         if value is not None:
-            raise tornado.gen.Return(str(value))
+            return str(value)
 
-        raise tornado.gen.Return(value)
+        return value
 
 
 class NumericField(TypedField):
@@ -189,9 +189,9 @@ class NumericField(TypedField):
     @tornado.gen.coroutine
     def to_internal_value(self, value):
         try:
-            raise tornado.gen.Return(self.type(value))
+            return self.type(value)
         except (TypeError, ValueError):
-            raise tornado.gen.Return(None)
+            return None
 
     @tornado.gen.coroutine
     def is_valid(self, value):
@@ -265,7 +265,7 @@ class ArrayField(TypedField):
         try:
             yield self.is_valid(value)
         except ValidationError:
-            raise tornado.gen.Return(None)
+            return None
 
         if self.field:
             values = []
@@ -273,9 +273,9 @@ class ArrayField(TypedField):
             for item in value:
                 values.append((yield self.field.to_internal_value(item)))
 
-            raise tornado.gen.Return(values)
+            return values
 
-        raise tornado.gen.Return(value)
+        return value
 
     @tornado.gen.coroutine
     def is_valid(self, value):
@@ -380,13 +380,13 @@ class MapField(Field):
             try:
                 value = json.loads(value)
             except (ValueError, TypeError):
-                raise tornado.gen.Return(None)
+                return None
 
-        raise tornado.gen.Return(value)
+        return value
 
     @tornado.gen.coroutine
     def to_representation(self, value):
-        raise tornado.gen.Return((yield self.to_internal_value(value)))
+        return (yield self.to_internal_value(value))
 
     @tornado.gen.coroutine
     def is_valid(self, value):

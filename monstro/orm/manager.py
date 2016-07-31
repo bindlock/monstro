@@ -18,7 +18,7 @@ class Manager(object):
     def create(self, **kwargs):
         instance = yield self.model(data=kwargs).save()
         yield instance.construct()
-        raise tornado.gen.Return(instance)
+        return instance
 
     @tornado.gen.coroutine
     def get(self, **query):
@@ -35,4 +35,4 @@ class Manager(object):
         instance = self.model(data=data)
         yield instance.construct()
 
-        raise tornado.gen.Return(instance)
+        return instance
