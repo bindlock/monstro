@@ -54,11 +54,17 @@ class ForeignKeyField(Field):
     def __init__(self, *, related_model, related_field='_id', **kwargs):
         super().__init__(**kwargs)
 
-        if isinstance(related_model, str):
-            related_model = import_object(related_model)
-
         self.related_model = related_model
         self.related_field = related_field
+
+    def bind(self, *args, **kwargs):
+        super().bind(*args, **kwargs)
+
+        if isinstance(self.related_model, str):
+            if self.related_model == 'self':
+                self.related_model = self.model
+            else:
+                self.related_model = import_object(self.related_model)
 
     @tornado.gen.coroutine
     def to_representation(self, value):

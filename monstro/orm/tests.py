@@ -17,6 +17,15 @@ from . import model, queryset, manager
 from .fields import ForeignKeyField, IDField
 
 
+class TestModel(model.Model):
+
+    __collection__ = uuid.uuid4().hex
+
+    name = fields.StringField()
+
+monstro.testing.TestModel = TestModel
+
+
 class ModelTest(monstro.testing.AsyncTestCase):
 
     drop_database_on_finish = True
@@ -436,8 +445,17 @@ class ForeignKeyFieldTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_init__with_related_model_as_string(self):
-        with self.assertRaises(ImportError):
-            ForeignKeyField(related_model='path.to.model')
+        field = ForeignKeyField(related_model='monstro.orm.tests.TestModel')
+        field.bind()
+
+        self.assertEqual(TestModel, field.related_model)
+
+    @tornado.testing.gen_test
+    def test_init__with_related_model_as_string__self(self):
+        field = ForeignKeyField(related_model='self')
+        field.bind(model=TestModel)
+
+        self.assertEqual(TestModel, field.related_model)
 
     @tornado.testing.gen_test
     def test_to_representation(self):
