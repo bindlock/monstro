@@ -446,16 +446,15 @@ class ForeignKeyFieldTest(monstro.testing.AsyncTestCase):
     @tornado.testing.gen_test
     def test_init__with_related_model_as_string(self):
         field = ForeignKeyField(related_model='monstro.orm.tests.TestModel')
-        field.bind()
 
-        self.assertEqual(TestModel, field.related_model)
+        self.assertEqual(TestModel, field.get_related_model())
 
     @tornado.testing.gen_test
     def test_init__with_related_model_as_string__self(self):
         field = ForeignKeyField(related_model='self')
         field.bind(model=TestModel)
 
-        self.assertEqual(TestModel, field.related_model)
+        self.assertEqual(TestModel, field.get_related_model())
 
     @tornado.testing.gen_test
     def test_to_representation(self):

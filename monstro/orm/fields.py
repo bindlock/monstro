@@ -57,14 +57,14 @@ class ForeignKeyField(Field):
         self.related_model = related_model
         self.related_field = related_field
 
-    def bind(self, *args, **kwargs):
-        super().bind(*args, **kwargs)
-
+    def get_related_model(self):
         if isinstance(self.related_model, str):
             if self.related_model == 'self':
                 self.related_model = self.model
             else:
                 self.related_model = import_object(self.related_model)
+
+        return self.related_model
 
     @tornado.gen.coroutine
     def to_representation(self, value):
@@ -86,8 +86,10 @@ class ForeignKeyField(Field):
 
     @tornado.gen.coroutine
     def is_valid(self, value):
+        related_model = self.get_related_model()
+
         if not isinstance(value, str):
-            if not isinstance(value, self.related_model):
+            if not isinstance(value, related_model):
                 self.fail('invalid')
 
             query = {self.related_field: getattr(value, self.related_field)}
@@ -95,17 +97,19 @@ class ForeignKeyField(Field):
             query = {self.related_field: value}
 
         try:
-            value = yield self.related_model.objects.get(**query)
-        except self.related_model.DoesNotExist:
+            value = yield related_model.objects.get(**query)
+        except related_model.DoesNotExist:
             self.fail('foreign_key')
 
         return value
 
     @tornado.gen.coroutine
     def to_internal_value(self, value):
+        related_model = self.get_related_model()
+
         if not value or isinstance(value, str):
             return value
-        elif not isinstance(value, self.related_model):
+        elif not isinstance(value, related_model):
             return None
 
         value = getattr(value, self.related_field)
@@ -117,7 +121,7 @@ class ForeignKeyField(Field):
 
     @tornado.gen.coroutine
     def get_metadata(self):
-        items = yield self.related_model.objects.all()
+        items = yield self.get_related_model().objects.all()
         choices = []
 
         for item in items:
