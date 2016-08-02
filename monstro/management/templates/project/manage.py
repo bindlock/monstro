@@ -2,6 +2,8 @@
 # coding=utf-8
 
 import os
+import sys
+sys.append('modules')
 
 import monstro.management
 from monstro.core.constants import SETTINGS_ENVIRONMENT_VARIABLE
