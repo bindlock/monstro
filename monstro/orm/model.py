@@ -59,6 +59,8 @@ class Model(Serializer, metaclass=MetaModel):
         else:
             self.__values__['_id'] = yield self.__cursor__.insert(data)
 
+        yield self.construct()
+
         raise tornado.gen.Return(self)
 
     @tornado.gen.coroutine

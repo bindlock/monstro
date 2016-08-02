@@ -68,19 +68,21 @@ class ForeignKeyField(Field):
 
     @tornado.gen.coroutine
     def to_representation(self, value):
+        related_model = self.get_related_model()
+
         if isinstance(value, str) or isinstance(value, ObjectId):
             if self.related_field == '_id' and isinstance(value, str):
                 try:
                     value = ObjectId(value)
                 except bson.errors.InvalidId:
-                    self.fail('foreign_key')
+                    return None
 
             query = {self.related_field: value}
 
             try:
-                value = yield self.related_model.objects.get(**query)
+                value = yield related_model.objects.get(**query)
             except self.related_model.DoesNotExist:
-                self.fail('foreign_key')
+                return None
 
         return value
 
@@ -88,7 +90,7 @@ class ForeignKeyField(Field):
     def is_valid(self, value):
         related_model = self.get_related_model()
 
-        if not isinstance(value, str):
+        if not (isinstance(value, str) or isinstance(value, ObjectId)):
             if not isinstance(value, related_model):
                 self.fail('invalid')
 

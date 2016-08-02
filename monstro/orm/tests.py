@@ -457,6 +457,15 @@ class ForeignKeyFieldTest(monstro.testing.AsyncTestCase):
         self.assertEqual(TestModel, field.get_related_model())
 
     @tornado.testing.gen_test
+    def test_validate__with_related_model_as_string(self):
+        field = ForeignKeyField(related_model='self')
+        field.bind(model=TestModel)
+
+        instance = yield TestModel.objects.create(name=uuid.uuid4().hex)
+
+        yield field.validate(instance._id)
+
+    @tornado.testing.gen_test
     def test_to_representation(self):
         field = ForeignKeyField(
             default=self.instance.name, related_model=self.model,
@@ -477,27 +486,13 @@ class ForeignKeyFieldTest(monstro.testing.AsyncTestCase):
     def test_to_representation__from_string_id_error(self):
         field = ForeignKeyField(related_model=self.model)
 
-        with self.assertRaises(ValidationError) as context:
-            yield field.to_representation('blackjack')
-
-        self.assertEqual(
-            context.exception.error,
-            ForeignKeyField.default_error_messages['foreign_key']
-        )
+        self.assertEqual(None, (yield field.to_representation('blackjack')))
 
     @tornado.testing.gen_test
     def test_to_representation__does_not_exist(self):
-        field = ForeignKeyField(
-            related_model=self.model, related_field='name'
-        )
+        field = ForeignKeyField(related_model=self.model, related_field='name')
 
-        with self.assertRaises(ValidationError) as context:
-            yield field.to_representation('blackjack')
-
-        self.assertEqual(
-            context.exception.error,
-            ForeignKeyField.default_error_messages['foreign_key']
-        )
+        self.assertEqual(None, (yield field.to_representation('blackjack')))
 
     @tornado.testing.gen_test
     def test_validate(self):
