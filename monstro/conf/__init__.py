@@ -14,7 +14,6 @@ from monstro.modules import ModulesRegistry
 from .schema import SettingsSchema
 
 
-@tornado.gen.coroutine
 def _import_settings_class():
     try:
         settings_class = import_object(
@@ -27,20 +26,7 @@ def _import_settings_class():
             )
         )
 
-    try:
-        yield SettingsSchema(instance=settings_class).validate()
-    except SettingsSchema.ValidationError as e:
-        raise ImproperlyConfigured(
-            'Wrong settings. {}'.format(
-                ' '.join(
-                    '{} - {}.'.format(*pair) for pair in e.error.items()
-                ).lower()
-            )
-        )
-
     return settings_class
 
-io_loop = tornado.ioloop.IOLoop.current()
-settings = io_loop.run_sync(_import_settings_class)
-
+settings = _import_settings_class()
 modules = ModulesRegistry(settings.modules)
