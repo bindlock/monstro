@@ -20,10 +20,10 @@ def execute(args):
     server = tornado.httpserver.HTTPServer(application)
     server.bind(address=args.host, port=args.port)
 
-    if settings.debug:
-        server.start()
-    elif getattr(settings, 'tornado_processes', None) is not None:
+    if hasattr(settings, 'tornado_processes') and not settings.debug:
         server.start(getattr(settings, 'tornado_processes'))
+    else:
+        server.start()
 
     print('Listen on {0.host}:{0.port}'.format(args))
 
