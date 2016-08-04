@@ -7,7 +7,6 @@ import tornado.httpserver
 
 from monstro.core.app import application
 from monstro.conf import settings
-import monstro.orm.db
 
 
 def execute(args):
@@ -23,17 +22,9 @@ def execute(args):
 
     if settings.debug:
         server.start()
-    else:
-        server.start(getattr(settings, 'tornado_processes', None))
+    elif getattr(settings, 'tornado_processes', None) is not None:
+        server.start(getattr(settings, 'tornado_processes'))
 
     print('Listen on {0.host}:{0.port}'.format(args))
 
-    io_loop = tornado.ioloop.IOLoop.instance()
-
-    try:
-        io_loop.start()
-    except KeyboardInterrupt:
-        io_loop.stop()
-
-    connection = monstro.orm.db.get_motor_connection(io_loop=io_loop)
-    monstro.orm.db.db = monstro.orm.db.get_database(connection)
+    tornado.ioloop.IOLoop.instance().start()
