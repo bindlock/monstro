@@ -3,9 +3,6 @@
 import os
 import importlib
 
-import tornado.gen
-import tornado.ioloop
-
 from monstro.core.exceptions import ImproperlyConfigured
 from monstro.core.constants import SETTINGS_ENVIRONMENT_VARIABLE
 from tornado.util import import_object

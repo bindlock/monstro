@@ -13,7 +13,7 @@ import monstro.testing
 from monstro.serializers import fields
 from monstro.serializers.exceptions import ValidationError
 
-from . import model, queryset, manager
+from . import model, queryset, manager, db
 from .fields import ForeignKeyField, IDField
 
 
@@ -24,6 +24,14 @@ class TestModel(model.Model):
     name = fields.StringField()
 
 monstro.testing.TestModel = TestModel
+
+
+class GetDatabaseTest(monstro.testing.AsyncTestCase):
+
+    def test_get_database(self):
+        database = db.get_database()
+
+        self.assertEqual(database, db.get_database())
 
 
 class ModelTest(monstro.testing.AsyncTestCase):
