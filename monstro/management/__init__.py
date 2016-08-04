@@ -13,11 +13,10 @@ def manage():
     argparser = argparse.ArgumentParser()
 
     argparser.add_argument('command')
-    argparser.add_argument('args', nargs='*')
     argparser.add_argument('-s', '--settings')
     argparser.add_argument('-p', '--python-path')
 
-    args = argparser.parse_args()
+    args, unknown = argparser.parse_known_args()
 
     if args.settings:
         os.environ[SETTINGS_ENVIRONMENT_VARIABLE] = args.settings
@@ -27,4 +26,4 @@ def manage():
 
     module_path = 'monstro.management.commands.{}.execute'.format(args.command)
 
-    import_object(module_path)(args.args)
+    import_object(module_path)(unknown)
