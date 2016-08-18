@@ -10,18 +10,18 @@ import tornado.ioloop
 from bson.objectid import ObjectId
 
 import monstro.testing
-from monstro.serializers import fields
-from monstro.serializers.exceptions import ValidationError
+from monstro.forms import fields
+from monstro.forms.exceptions import ValidationError
 
 from . import model, queryset, manager, db
-from .fields import ForeignKeyField, IDField
+from .fields import ForeignKey, Id
 
 
 class TestModel(model.Model):
 
     __collection__ = uuid.uuid4().hex
 
-    name = fields.StringField()
+    name = fields.String()
 
 monstro.testing.TestModel = TestModel
 
@@ -54,7 +54,7 @@ class ModelTest(monstro.testing.AsyncTestCase):
         class CustomModel(model.Model):
             __collection__ = 'test'
 
-            name = fields.StringField()
+            name = fields.String()
 
         instance = CustomModel(data={})
 
@@ -68,14 +68,14 @@ class ModelTest(monstro.testing.AsyncTestCase):
 
             class Test(model.Model):
                 __collection__ = 'test'
-                _id = fields.IntegerField()
+                _id = fields.Integer()
 
     @tornado.testing.gen_test
     def test_getattr__attribute_error(self):
         class CustomModel(model.Model):
             __collection__ = 'test'
 
-            name = fields.StringField()
+            name = fields.String()
 
         instance = CustomModel(data={'name': 'test'})
 
@@ -87,7 +87,7 @@ class ModelTest(monstro.testing.AsyncTestCase):
         class CustomModel(model.Model):
             __collection__ = 'test'
 
-            name = fields.StringField()
+            name = fields.String()
 
         instance = CustomModel(data={'name': 'test'})
 
@@ -100,7 +100,7 @@ class ModelTest(monstro.testing.AsyncTestCase):
         class CustomModel(model.Model):
             __collection__ = 'test'
 
-            string = fields.StringField()
+            string = fields.String()
 
         instance = yield CustomModel.objects.create(string=uuid.uuid4().hex)
 
@@ -113,7 +113,7 @@ class ModelTest(monstro.testing.AsyncTestCase):
         class CustomModel(model.Model):
             __collection__ = 'test'
 
-            string = fields.StringField()
+            string = fields.String()
 
         instance = yield CustomModel.objects.create(string=uuid.uuid4().hex)
 
@@ -126,7 +126,7 @@ class ModelTest(monstro.testing.AsyncTestCase):
         class CustomModel(model.Model):
             __collection__ = 'test'
 
-            string = fields.StringField()
+            string = fields.String()
 
         instance = yield CustomModel.objects.create(string=uuid.uuid4().hex)
 
@@ -145,7 +145,7 @@ class ModelTest(monstro.testing.AsyncTestCase):
         class CustomModel(model.Model):
             __collection__ = 'test'
 
-            string = fields.StringField()
+            string = fields.String()
 
         instance = yield CustomModel.objects.create(string=uuid.uuid4().hex)
 
@@ -161,13 +161,13 @@ class ModelTest(monstro.testing.AsyncTestCase):
         class RelatedModel(model.Model):
             __collection__ = 'test2'
 
-            name = fields.StringField()
+            name = fields.String()
 
         class CustomModel(model.Model):
             __collection__ = 'test'
 
-            string = fields.StringField()
-            related = ForeignKeyField(
+            string = fields.String()
+            related = ForeignKey(
                 related_model=RelatedModel, related_field='name'
             )
 
@@ -188,13 +188,13 @@ class ModelTest(monstro.testing.AsyncTestCase):
         class RelatedModel(model.Model):
             __collection__ = 'test2'
 
-            name = fields.StringField()
+            name = fields.String()
 
         class CustomModel(model.Model):
             __collection__ = 'test'
 
-            string = fields.StringField()
-            related = ForeignKeyField(
+            string = fields.String()
+            related = ForeignKey(
                 related_model=RelatedModel, related_field='name'
             )
 
@@ -220,7 +220,7 @@ class ModelTest(monstro.testing.AsyncTestCase):
         class CustomModel(model.Model):
             __collection__ = 'test'
 
-            string = fields.StringField(unique=True)
+            string = fields.String(unique=True)
 
         instance = yield CustomModel.objects.create(string=uuid.uuid4().hex)
 
@@ -237,7 +237,7 @@ class ModelTest(monstro.testing.AsyncTestCase):
         class CustomModel(model.Model):
             __collection__ = 'test'
 
-            string = fields.StringField()
+            string = fields.String()
 
         instance = yield CustomModel.objects.create(string=uuid.uuid4().hex)
         yield instance.delete()
@@ -257,7 +257,7 @@ class ModelTest(monstro.testing.AsyncTestCase):
             __collection__ = 'test'
             objects = CustomManager()
 
-            string = fields.StringField()
+            string = fields.String()
 
         instance = yield CustomModel.objects.create()
 
@@ -272,7 +272,7 @@ class ManagerTest(monstro.testing.AsyncTestCase):
 
             __collection__ = uuid.uuid4().hex
 
-            name = fields.StringField()
+            name = fields.String()
 
         self.model = Test
 
@@ -309,7 +309,7 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
 
             __collection__ = uuid.uuid4().hex
 
-            name = fields.StringField()
+            name = fields.String()
 
         self.model = Test
         self.queryset = queryset.QuerySet(self.model)
@@ -385,11 +385,11 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
         self.assertEqual('test{}'.format(number), instance.name)
 
 
-class IDFieldTest(monstro.testing.AsyncTestCase):
+class IdTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_to_representation(self):
-        field = IDField()
+        field = Id()
 
         value = yield field.to_representation(str(ObjectId()))
 
@@ -397,48 +397,48 @@ class IDFieldTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_validate(self):
-        field = IDField(default=ObjectId())
+        field = Id(default=ObjectId())
 
         yield field.validate()
 
     @tornado.testing.gen_test
     def test_is_valid__from_string(self):
-        field = IDField()
+        field = Id()
 
         yield field.is_valid(str(ObjectId()))
 
     @tornado.testing.gen_test
     def test_is_valid__from_string_error(self):
-        field = IDField()
+        field = Id()
 
         with self.assertRaises(ValidationError) as context:
             yield field.is_valid('blackjack')
 
         self.assertEqual(
             context.exception.error,
-            IDField.default_error_messages['invalid']
+            Id.default_error_messages['invalid']
         )
 
     @tornado.testing.gen_test
     def test_to_internal_value__from_string_error(self):
-        field = IDField()
+        field = Id()
 
         self.assertEqual(None, (yield field.to_internal_value('wrong')))
 
     @tornado.testing.gen_test
     def test_validate__error(self):
-        field = IDField(default='blackjack')
+        field = Id(default='blackjack')
 
         with self.assertRaises(ValidationError) as context:
             yield field.validate()
 
         self.assertEqual(
             context.exception.error,
-            IDField.default_error_messages['invalid']
+            Id.default_error_messages['invalid']
         )
 
 
-class ForeignKeyFieldTest(monstro.testing.AsyncTestCase):
+class ForeignKeyTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def setUpAsync(self):
@@ -446,27 +446,27 @@ class ForeignKeyFieldTest(monstro.testing.AsyncTestCase):
 
             __collection__ = uuid.uuid4().hex
 
-            name = fields.StringField()
+            name = fields.String()
 
         self.model = Test
         self.instance = yield self.model.objects.create(name=uuid.uuid4().hex)
 
     @tornado.testing.gen_test
     def test_init__with_related_model_as_string(self):
-        field = ForeignKeyField(related_model='monstro.orm.tests.TestModel')
+        field = ForeignKey(related_model='monstro.orm.tests.TestModel')
 
         self.assertEqual(TestModel, field.get_related_model())
 
     @tornado.testing.gen_test
     def test_init__with_related_model_as_string__self(self):
-        field = ForeignKeyField(related_model='self')
+        field = ForeignKey(related_model='self')
         field.bind(model=TestModel)
 
         self.assertEqual(TestModel, field.get_related_model())
 
     @tornado.testing.gen_test
     def test_validate__with_related_model_as_string(self):
-        field = ForeignKeyField(related_model='self')
+        field = ForeignKey(related_model='self')
         field.bind(model=TestModel)
 
         instance = yield TestModel.objects.create(name=uuid.uuid4().hex)
@@ -475,7 +475,7 @@ class ForeignKeyFieldTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_to_representation(self):
-        field = ForeignKeyField(
+        field = ForeignKey(
             default=self.instance.name, related_model=self.model,
             related_field='name'
         )
@@ -485,26 +485,26 @@ class ForeignKeyFieldTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_to_representation__from_string_id(self):
-        field = ForeignKeyField(related_model=self.model)
+        field = ForeignKey(related_model=self.model)
         value = yield field.to_representation(str(self.instance._id))
 
         self.assertEqual(value.name, self.instance.name)
 
     @tornado.testing.gen_test
     def test_to_representation__from_string_id_error(self):
-        field = ForeignKeyField(related_model=self.model)
+        field = ForeignKey(related_model=self.model)
 
         self.assertEqual(None, (yield field.to_representation('blackjack')))
 
     @tornado.testing.gen_test
     def test_to_representation__does_not_exist(self):
-        field = ForeignKeyField(related_model=self.model, related_field='name')
+        field = ForeignKey(related_model=self.model, related_field='name')
 
         self.assertEqual(None, (yield field.to_representation('blackjack')))
 
     @tornado.testing.gen_test
     def test_validate(self):
-        field = ForeignKeyField(
+        field = ForeignKey(
             default=self.instance, related_model=self.model,
             related_field='name'
         )
@@ -514,7 +514,7 @@ class ForeignKeyFieldTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_is_valid(self):
-        field = ForeignKeyField(
+        field = ForeignKey(
             related_model=self.model, related_field='name'
         )
         yield field.is_valid(self.instance)
@@ -523,7 +523,7 @@ class ForeignKeyFieldTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_to_internal_value__id(self):
-        field = ForeignKeyField(related_model=self.model)
+        field = ForeignKey(related_model=self.model)
 
         value = yield field.to_internal_value(self.instance)
 
@@ -531,13 +531,13 @@ class ForeignKeyFieldTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_to_internal_value__invalid(self):
-        field = ForeignKeyField(related_model=self.model)
+        field = ForeignKey(related_model=self.model)
 
         self.assertEqual(None, (yield field.to_internal_value(field)))
 
     @tornado.testing.gen_test
     def test_validate__from_key(self):
-        field = ForeignKeyField(
+        field = ForeignKey(
             default=self.instance.name, related_model=self.model,
             related_field='name'
         )
@@ -547,7 +547,7 @@ class ForeignKeyFieldTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_validate__error(self):
-        field = ForeignKeyField(
+        field = ForeignKey(
             default='blackjack', related_model=self.model, related_field='name'
         )
 
@@ -556,13 +556,13 @@ class ForeignKeyFieldTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            ForeignKeyField.default_error_messages['foreign_key']
+            ForeignKey.default_error_messages['foreign_key']
         )
 
     @tornado.testing.gen_test
     def test_validate__error_wrong_model(self):
-        field = ForeignKeyField(
-            default=fields.StringField(),
+        field = ForeignKey(
+            default=fields.String(),
             related_model=self.model, related_field='name'
         )
 
@@ -571,21 +571,21 @@ class ForeignKeyFieldTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            ForeignKeyField.default_error_messages['invalid'].format(field)
+            ForeignKey.default_error_messages['invalid'].format(field)
         )
 
     @tornado.testing.gen_test
     def test_is_valid__error_wrong_model(self):
-        field = ForeignKeyField(
+        field = ForeignKey(
             related_model=self.model, related_field='name'
         )
 
         with self.assertRaises(ValidationError) as context:
-            yield field.is_valid(fields.StringField())
+            yield field.is_valid(fields.String())
 
         self.assertEqual(
             context.exception.error,
-            ForeignKeyField.default_error_messages['invalid'].format(field)
+            ForeignKey.default_error_messages['invalid'].format(field)
         )
 
     @tornado.testing.gen_test
@@ -593,7 +593,7 @@ class ForeignKeyFieldTest(monstro.testing.AsyncTestCase):
         for __ in range(3):
             yield self.model.objects.create(name='test')
 
-        field = ForeignKeyField(
+        field = ForeignKey(
             related_model=self.model, related_field='name'
         )
 

@@ -3,7 +3,7 @@
 import collections
 
 
-class Choice(object):
+class Choices(object):
 
     """Choice model.
 

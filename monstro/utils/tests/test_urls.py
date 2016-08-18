@@ -4,7 +4,7 @@ import unittest
 
 import tornado.web
 
-from .urls import include
+from monstro.utils.urls import include
 
 
 class Handler(tornado.web.RequestHandler):

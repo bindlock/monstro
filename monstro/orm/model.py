@@ -2,20 +2,20 @@
 
 import tornado.gen
 
-from monstro.serializers.serializer import Serializer, MetaSerializer
+from monstro.forms.forms import Form, MetaForm
 
 from . import manager, db
 from .exceptions import DoesNotExist
-from .fields import IDField
+from .fields import Id
 
 
-class MetaModel(MetaSerializer):
+class MetaModel(MetaForm):
 
     def __new__(mcs, name, bases, attributes):
         if '_id' in attributes:
             raise AttributeError('Field "_id" reserved')
 
-        attributes['_id'] = IDField(required=False, read_only=True)
+        attributes['_id'] = Id(required=False, read_only=True)
         attributes.move_to_end('_id', last=False)
 
         cls = super().__new__(mcs, name, bases, attributes)
@@ -32,7 +32,7 @@ class MetaModel(MetaSerializer):
         return cls
 
 
-class Model(Serializer, metaclass=MetaModel):
+class Model(Form, metaclass=MetaModel):
 
     __collection__ = None
 
@@ -44,10 +44,10 @@ class Model(Serializer, metaclass=MetaModel):
         )
 
     @tornado.gen.coroutine
-    def get_data(self):
-        data = yield super().get_data()
+    def serialize(self):
+        data = yield super().serialize()
         data['_id'] = data['_id'] and str(data['_id'])
-        raise tornado.gen.Return(data)
+        return data
 
     @tornado.gen.coroutine
     def save(self):
@@ -61,7 +61,7 @@ class Model(Serializer, metaclass=MetaModel):
 
         yield self.construct()
 
-        raise tornado.gen.Return(self)
+        return self
 
     @tornado.gen.coroutine
     def update(self, **kwargs):
@@ -82,6 +82,7 @@ class Model(Serializer, metaclass=MetaModel):
     @tornado.gen.coroutine
     def delete(self):
         if self._id:
+            print(self._id)
             yield self.__cursor__.remove({'_id': self._id})
 
     def __str__(self):

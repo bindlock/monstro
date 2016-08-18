@@ -6,13 +6,13 @@ from tornado.util import import_object
 from bson.objectid import ObjectId
 import bson.errors
 
-from monstro.ui import inputs
-from monstro.serializers.fields import StringField, Field
+from monstro.forms import widgets
+from monstro.forms.fields import String, Field
 
 
-class IDField(StringField):
+class Id(String):
 
-    widget = inputs.Input('hidden')
+    widget = widgets.Input('hidden')
     default_error_messages = {
         'invalid': 'Value must be an valid MongoDB Id'
     }
@@ -44,7 +44,7 @@ class IDField(StringField):
         return (yield self.to_internal_value(value))
 
 
-class ForeignKeyField(Field):
+class ForeignKey(Field):
 
     default_error_messages = {
         'invalid': 'Model instance must be a {0.related_model.__name__}',
@@ -129,6 +129,6 @@ class ForeignKeyField(Field):
         for item in items:
             choices.append((str(getattr(item, self.related_field)), str(item)))
 
-        self.widget = inputs.Select(choices)
+        self.widget = widgets.Select(choices)
 
         return (yield super().get_metadata())

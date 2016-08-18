@@ -1,12 +1,21 @@
 # coding=utf-8
 
-from .widget import Widget
+
+class Widget(object):
+
+    def __init__(self, tag, value=None, attributes=None):
+        self.tag = tag
+        self.value = value
+        self.attributes = attributes or {}
+
+    def get_metadata(self):
+        return {'tag': self.tag, 'attrs': self.attributes}
 
 
 class Input(Widget):
 
     def __init__(self, type_, **kwargs):
-        super().__init__('input', is_pair=False, **kwargs)
+        super().__init__('input', **kwargs)
         self.attributes['type'] = type_
 
 
@@ -19,14 +28,8 @@ class TextArea(Widget):
 class Select(Widget):
 
     def __init__(self, choices, **kwargs):
-        self.choices = choices
-
-        kwargs['value'] = []
-        for value, title in self.choices:
-            widget = Widget('option', value=title, attributes={'value': value})
-            kwargs['value'].append(widget)
-
         super().__init__('select', **kwargs)
+        self.choices = choices
 
     def get_metadata(self, *args, **kwargs):
         data = super().get_metadata(*args, **kwargs)

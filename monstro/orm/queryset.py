@@ -11,6 +11,7 @@ class QuerySet(object):
         self.model = model
         self.cursor = get_database()[self.model.__collection__].find()
         self.items = []
+        self.query = {}
 
     def __getattr__(self, attribute):
         return getattr(self.cursor, attribute)
@@ -35,9 +36,32 @@ class QuerySet(object):
             return instance
 
     def filter(self, **query):
+        self.query.update(query)
         cursor = get_database()[self.model.__collection__]
-        self.cursor = cursor.find(query)
+
+        self.cursor = cursor.find(self.query)
+
         return self
+
+    @tornado.gen.coroutine
+    def get(self, **query):
+        for key, value in query.items():
+            query[key] = (
+                yield self.model.__fields__[key].to_internal_value(value)
+            )
+
+        self.query.update(query)
+        cursor = get_database()[self.model.__collection__]
+
+        data = yield cursor.find_one(self.query)
+
+        if not data:
+            raise self.model.DoesNotExist()
+
+        instance = self.model(data=data)
+        yield instance.construct()
+
+        return instance
 
     @tornado.gen.coroutine
     def first(self):

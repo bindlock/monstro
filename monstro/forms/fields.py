@@ -6,8 +6,7 @@ import urllib.parse
 
 import tornado.gen
 
-from monstro.ui import inputs
-
+from . import widgets
 from .exceptions import ValidationError
 
 
@@ -87,8 +86,7 @@ class Field(object):
 
     def fail(self, error_code, **kwargs):
         raise ValidationError(
-            self.error_messages[error_code].format(self, **kwargs),
-            self.name
+            self.error_messages[error_code].format(self, **kwargs), self.name
         )
 
     @tornado.gen.coroutine
@@ -114,14 +112,14 @@ class Field(object):
             'default': self.default and (
                 yield self.to_internal_value(self.default)
             ),
-            'widget': self.widget and self.widget.get_metadata(with_html=False)
+            'widget': self.widget and self.widget.get_metadata()
         })
 
 
-class TypedField(Field):
+class Type(Field):
 
     type = type
-    widget = inputs.Input('text')
+    widget = widgets.Input('text')
     default_error_messages = {
         'invalid': 'Value must be a valid {0.type.__name__}'
     }
@@ -132,16 +130,16 @@ class TypedField(Field):
             self.fail('invalid')
 
 
-class BooleanField(TypedField):
+class Boolean(Type):
 
     type = bool
-    widget = inputs.Input('checkbox')
+    widget = widgets.Input('checkbox')
     default_error_messages = {
         'invalid': 'Value must be a valid boolean'
     }
 
 
-class StringField(TypedField):
+class String(Type):
 
     type = str
     default_error_messages = {
@@ -173,7 +171,7 @@ class StringField(TypedField):
         return value
 
 
-class NumericField(TypedField):
+class Numeric(Type):
 
     default_error_messages = {
         'invalid': 'Value must be a valid integer or float',
@@ -207,7 +205,7 @@ class NumericField(TypedField):
             self.fail('max_value')
 
 
-class IntegerField(NumericField):
+class Integer(Numeric):
 
     type = int
     default_error_messages = {
@@ -215,7 +213,7 @@ class IntegerField(NumericField):
     }
 
 
-class FloatField(NumericField):
+class Float(Numeric):
 
     type = float
     default_error_messages = {
@@ -223,7 +221,7 @@ class FloatField(NumericField):
     }
 
 
-class ChoiceField(Field):
+class Choice(Field):
 
     default_error_messages = {
         'invalid': 'Value must be in {choices}',
@@ -236,7 +234,7 @@ class ChoiceField(Field):
         :type choices: iterable.
         """
         self.choices = list(choices)
-        self.widget = inputs.Select(self.choices)
+        self.widget = widgets.Select(self.choices)
         super().__init__(**kwargs)
 
     @tornado.gen.coroutine
@@ -247,10 +245,10 @@ class ChoiceField(Field):
             self.fail('invalid', choices=choices)
 
 
-class ArrayField(TypedField):
+class Array(Type):
 
     type = list
-    widget = inputs.TextArea()
+    widget = widgets.TextArea()
     default_error_messages = {
         'invalid': 'Value must be a valid array',
         'child': '{index}: {message}'
@@ -289,21 +287,21 @@ class ArrayField(TypedField):
                     self.fail('child', index=index, message=e.error)
 
 
-class MultipleChoiceField(ArrayField, ChoiceField):
+class MultipleChoice(Array, Choice):
 
     default_error_messages = {
         'choices': 'All values must be in {choices}',
     }
 
     def __init__(self, **kwargs):
-        ChoiceField.__init__(self, **kwargs)
-        ArrayField.__init__(self, **kwargs)
+        Choice.__init__(self, **kwargs)
+        Array.__init__(self, **kwargs)
 
         self.widget.attributes['multiple'] = True
 
     @tornado.gen.coroutine
     def is_valid(self, value):
-        yield ArrayField.is_valid(self, value)
+        yield Array.is_valid(self, value)
 
         choices = [choice[0] for choice in self.choices]
 
@@ -311,7 +309,7 @@ class MultipleChoiceField(ArrayField, ChoiceField):
             self.fail('choices', choices=choices)
 
 
-class URLField(StringField):
+class Url(String):
 
     default_error_messages = {
         'url': 'Value must be a valid URL',
@@ -327,7 +325,7 @@ class URLField(StringField):
             self.fail('url')
 
 
-class RegexMatchField(StringField):
+class RegexMatch(String):
 
     default_error_messages = {
         'pattern': 'Value must match by {0.pattern}',
@@ -345,7 +343,7 @@ class RegexMatchField(StringField):
             self.fail('pattern')
 
 
-class HostField(RegexMatchField):
+class Host(RegexMatch):
 
     default_error_messages = {
         'pattern': 'Value must be a valid host',
@@ -359,7 +357,7 @@ class HostField(RegexMatchField):
     )
 
 
-class SlugField(RegexMatchField):
+class Slug(RegexMatch):
 
     default_error_messages = {
         'pattern': 'Value must be a valid slug',
@@ -367,9 +365,9 @@ class SlugField(RegexMatchField):
     pattern = r'^[a-zA-Z\d\-_]+$'
 
 
-class MapField(Field):
+class Map(Field):
 
-    widget = inputs.TextArea()
+    widget = widgets.TextArea()
     default_error_messages = {
         'invalid': 'Value must be a map or JSON string',
     }

@@ -12,8 +12,7 @@ class Pagination(object):
 
     query_keys = {}
 
-    def __init__(self, queryset, serializer, query_keys=None):
-        self.queryset = queryset
+    def __init__(self, serializer=None, query_keys=None):
         self.serializer = serializer
         self.query_keys = query_keys or self.query_keys
         self.data = {}
@@ -28,27 +27,31 @@ class Pagination(object):
         raise NotImplementedError()
 
     @tornado.gen.coroutine
-    def paginate(self):
+    def serialize(self, instance):
+        if self.serializer:
+            if isinstance(instance, self.serializer):
+                return (yield instance.serialize())
+
+            return (yield self.serializer(instance=instance).serialize())
+
+        return instance
+
+    @tornado.gen.coroutine
+    def paginate(self, queryset):
         offset = self.get_offset()
         limit = self.get_limit()
         size = limit - offset
 
-        count = yield self.queryset.count()
-        instances = yield self.queryset[offset:limit]
+        count = yield queryset.count()
+        instances = yield queryset[offset:limit]
 
-        self.data['page'] = self.page
+        self.data['page'] = int(math.ceil(float(offset) / size))
         self.data['count'] = count
         self.data['pages'] = int(math.ceil(float(count) / size))
+        self.data['items'] = []
 
-        items = []
         for instance in instances:
-            if isinstance(instance, self.serializer):
-                items.append((yield instance.get_data()))
-                continue
-
-            items.append((yield self.serializer(instance=instance).get_data()))
-
-        self.data['items'] = items
+            self.data['items'].append((yield self.serialize(instance)))
 
         return self.data
 
@@ -86,4 +89,4 @@ class LimitOffsetPagination(Pagination):
         return self.offset
 
     def get_limit(self):
-        return self.limit
+        return self.offset + self.limit

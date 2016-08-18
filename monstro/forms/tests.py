@@ -1,39 +1,41 @@
 # coding=utf-8
 
+import unittest
+
 import tornado.gen
 import tornado.testing
 import tornado.ioloop
 
 import monstro.testing
-from monstro.utils import Choice
+from monstro.utils import Choices
 
-from . import fields, serializer, exceptions
+from . import fields, forms, exceptions, widgets
 
 
 class FieldTest(monstro.testing.AsyncTestCase):
 
     def test_init(self):
-        field = fields.IntegerField(default='1')
+        field = fields.Integer(default='1')
 
         self.assertEqual(field.default, '1')
         self.assertEqual(field.validators, [])
 
     def test_init__empty(self):
-        field = fields.IntegerField()
+        field = fields.Integer()
 
         self.assertEqual(field.default, None)
         self.assertEqual(field.validators, [])
 
     @tornado.testing.gen_test
     def test__validation_error(self):
-        field = fields.IntegerField()
+        field = fields.Integer()
 
         with self.assertRaises(exceptions.ValidationError):
             yield field.validate('a')
 
     @tornado.testing.gen_test
     def test__validation_error_required(self):
-        field = fields.IntegerField(required=True)
+        field = fields.Integer(required=True)
 
         with self.assertRaises(exceptions.ValidationError):
             yield field.validate(None)
@@ -45,7 +47,7 @@ class FieldTest(monstro.testing.AsyncTestCase):
         def validator(value):
             raise exceptions.ValidationError(value)
 
-        field = fields.IntegerField(validators=[validator])
+        field = fields.Integer(validators=[validator])
 
         with self.assertRaises(exceptions.ValidationError):
             yield field.validate(1)
@@ -72,69 +74,61 @@ class FieldTest(monstro.testing.AsyncTestCase):
         }, (yield field.get_metadata()))
 
 
-class SerializerTest(monstro.testing.AsyncTestCase):
-
-    def test_init__empty(self):
-        with self.assertRaises(AssertionError):
-            serializer.Serializer()
+class FormTest(monstro.testing.AsyncTestCase):
 
     def test_init__with_data(self):
-        instance = serializer.Serializer(data={'name': 'test'})
+        instance = forms.Form(data={'name': 'test'})
 
         self.assertEqual({}, instance.__values__)
 
     def test_init__with_instance(self):
-        class CustomSerializer(serializer.Serializer):
+        class CustomForm(forms.Form):
 
-            name = fields.StringField()
+            name = fields.String()
 
         class Instance(object):
 
             name = 'test'
 
-        instance = CustomSerializer(instance=Instance)
+        instance = CustomForm(instance=Instance)
 
         self.assertEqual(instance.__values__['name'], 'test')
 
-    def test_init__with_instance_and_data(self):
-        with self.assertRaises(AssertionError):
-            serializer.Serializer(instance='instance', data={'key': 'value'})
-
     def test_new(self):
-        class CustomSerializer(serializer.Serializer):
+        class CustomForm(forms.Form):
 
-            name = fields.StringField()
+            name = fields.String()
 
-        self.assertIn('name', CustomSerializer.__fields__)
+        self.assertIn('name', CustomForm.__fields__)
 
     def test_set_value(self):
-        class CustomSerializer(serializer.Serializer):
+        class CustomForm(forms.Form):
 
-            name = fields.StringField()
+            name = fields.String()
 
-        instance = CustomSerializer(data={'name': ''})
+        instance = CustomForm(data={'name': ''})
         instance.name = 'test'
 
         self.assertEqual(instance.name, 'test')
 
     @tornado.testing.gen_test
     def test_getattr__attribute_error(self):
-        class CustomSerializer(serializer.Serializer):
+        class CustomForm(forms.Form):
 
-            name = fields.StringField()
+            name = fields.String()
 
-        instance = CustomSerializer(data={'name': 'test'})
+        instance = CustomForm(data={'name': 'test'})
 
         with self.assertRaises(AttributeError):
             instance.none()
 
     @tornado.testing.gen_test
     def test_construct(self):
-        class CustomSerializer(serializer.Serializer):
+        class CustomForm(forms.Form):
 
-            map = fields.MapField()
+            map = fields.Map()
 
-        instance = CustomSerializer(data={'map': '{"name": "test"}'})
+        instance = CustomForm(data={'map': '{"name": "test"}'})
 
         yield instance.construct()
 
@@ -142,12 +136,12 @@ class SerializerTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_validate(self):
-        class CustomSerializer(serializer.Serializer):
+        class CustomForm(forms.Form):
             __collection__ = 'test'
 
-            string = fields.StringField()
+            string = fields.String()
 
-        instance = CustomSerializer(data={'string': 'test'})
+        instance = CustomForm(data={'string': 'test'})
 
         data = yield instance.validate()
 
@@ -155,12 +149,12 @@ class SerializerTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_validate__error(self):
-        class CustomSerializer(serializer.Serializer):
+        class CustomForm(forms.Form):
             __collection__ = 'test'
 
-            string = fields.StringField()
+            string = fields.String()
 
-        instance = CustomSerializer(data={'string': 1})
+        instance = CustomForm(data={'string': 1})
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield instance.validate()
@@ -170,12 +164,12 @@ class SerializerTest(monstro.testing.AsyncTestCase):
     @tornado.testing.gen_test
     def test__read_only(self):
 
-        class CustomSerializer(serializer.Serializer):
+        class CustomForm(forms.Form):
             __collection__ = 'test'
 
-            string = fields.StringField(read_only=True)
+            string = fields.String(read_only=True)
 
-        instance = CustomSerializer(data={'string': '1'})
+        instance = CustomForm(data={'string': '1'})
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield instance.validate()
@@ -187,14 +181,14 @@ class SerializerTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_get_metadata(self):
-        class CustomSerializer(serializer.Serializer):
+        class CustomForm(forms.Form):
             __collection__ = 'test'
 
-            string = fields.StringField(
+            string = fields.String(
                 label='Label', help_text='Help', default='default'
             )
 
-        instance = CustomSerializer(data={'string': 1})
+        instance = CustomForm(data={'string': 1})
 
         self.assertEqual([{
             'name': 'string',
@@ -205,307 +199,317 @@ class SerializerTest(monstro.testing.AsyncTestCase):
             'default': 'default',
             'widget': {
                 'attrs': {'type': 'text'},
-                'is_pair': False,
                 'tag': 'input',
             }
         }], (yield instance.get_metadata()))
 
     @tornado.testing.gen_test
-    def test_get_data(self):
-        class CustomSerializer(serializer.Serializer):
+    def test_serialize(self):
+        class CustomForm(forms.Form):
             __collection__ = 'test'
 
-            string = fields.StringField(
+            string = fields.String(
                 label='Label', help_text='Help', default='default'
             )
 
-        instance = CustomSerializer(data={'string': '1'})
+        instance = CustomForm(data={'string': '1'})
 
-        self.assertEqual({'string': '1'}, (yield instance.get_data()))
+        self.assertEqual({'string': '1'}, (yield instance.serialize()))
+
+    @tornado.testing.gen_test
+    def test_save(self):
+        class CustomForm(forms.Form):
+            __collection__ = 'test'
+
+            string = fields.String(
+                label='Label', help_text='Help', default='default'
+            )
+
+        CustomForm(data={'string': '1'}).save()
 
 
-class BooleanFieldTest(monstro.testing.AsyncTestCase):
+class BooleanTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_validate(self):
-        field = fields.BooleanField()
+        field = fields.Boolean()
         self.assertTrue((yield field.validate(True)))
 
     @tornado.testing.gen_test
     def test_validate__invalid(self):
-        field = fields.BooleanField()
+        field = fields.Boolean()
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield field.validate('blackjack')
 
         self.assertEqual(
             context.exception.error,
-            fields.BooleanField.default_error_messages['invalid']
+            fields.Boolean.default_error_messages['invalid']
         )
 
 
-class StringFieldTest(monstro.testing.AsyncTestCase):
+class StringTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_validate(self):
-        field = fields.StringField()
+        field = fields.String()
         self.assertEqual('Test', (yield field.validate('Test')))
 
     @tornado.testing.gen_test
     def test_validate__invalid(self):
-        field = fields.StringField()
+        field = fields.String()
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield field.validate(10)
 
         self.assertEqual(
             context.exception.error,
-            fields.StringField.default_error_messages['invalid']
+            fields.String.default_error_messages['invalid']
         )
 
     @tornado.testing.gen_test
     def test_validate__min_length(self):
-        field = fields.StringField(min_length=5, default='test')
+        field = fields.String(min_length=5, default='test')
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield field.validate()
 
         self.assertEqual(
             context.exception.error,
-            fields.StringField.default_error_messages['min_length'].format(
+            fields.String.default_error_messages['min_length'].format(
                 field
             )
         )
 
     @tornado.testing.gen_test
     def test_validate__max_length(self):
-        field = fields.StringField(max_length=3, default='test')
+        field = fields.String(max_length=3, default='test')
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield field.validate()
 
         self.assertEqual(
             context.exception.error,
-            fields.StringField.default_error_messages['max_length'].format(
+            fields.String.default_error_messages['max_length'].format(
                 field
             )
         )
 
     @tornado.testing.gen_test
     def test_to_internal_value__none(self):
-        field = fields.StringField()
+        field = fields.String()
 
         self.assertEqual(None, (yield field.to_internal_value(None)))
 
 
-class IntegerFieldTest(monstro.testing.AsyncTestCase):
+class IntegerTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_validate(self):
-        field = fields.IntegerField()
+        field = fields.Integer()
         self.assertEqual(10, (yield field.validate('10')))
 
     @tornado.testing.gen_test
     def test_validate__invalid(self):
-        field = fields.IntegerField()
+        field = fields.Integer()
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield field.validate('blackjack')
 
         self.assertEqual(
             context.exception.error,
-            fields.IntegerField.default_error_messages['invalid']
+            fields.Integer.default_error_messages['invalid']
         )
 
     @tornado.testing.gen_test
     def test_validate__min_value(self):
-        field = fields.IntegerField(default=10, min_value=11)
+        field = fields.Integer(default=10, min_value=11)
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield field.validate()
 
         self.assertEqual(
             context.exception.error,
-            fields.NumericField.default_error_messages['min_value'].format(
+            fields.Numeric.default_error_messages['min_value'].format(
                 field
             )
         )
 
     @tornado.testing.gen_test
     def test_validate__max_value(self):
-        field = fields.IntegerField(default=10, max_value=9)
+        field = fields.Integer(default=10, max_value=9)
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield field.validate()
 
         self.assertEqual(
             context.exception.error,
-            fields.NumericField.default_error_messages['max_value'].format(
+            fields.Numeric.default_error_messages['max_value'].format(
                 field
             )
         )
 
 
-class FloatFieldTest(monstro.testing.AsyncTestCase):
+class FloatTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_validate(self):
-        field = fields.FloatField()
+        field = fields.Float()
         self.assertEqual(10.2, (yield field.validate('10.2')))
 
     @tornado.testing.gen_test
     def test_validate__invalid(self):
-        field = fields.FloatField()
+        field = fields.Float()
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield field.validate('blackjack')
 
         self.assertEqual(
             context.exception.error,
-            fields.FloatField.default_error_messages['invalid']
+            fields.Float.default_error_messages['invalid']
         )
 
     @tornado.testing.gen_test
     def test_validate__min_value(self):
-        field = fields.FloatField(default=10.1, min_value=10.2)
+        field = fields.Float(default=10.1, min_value=10.2)
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield field.validate()
 
         self.assertEqual(
             context.exception.error,
-            fields.NumericField.default_error_messages['min_value'].format(
+            fields.Numeric.default_error_messages['min_value'].format(
                 field
             )
         )
 
     @tornado.testing.gen_test
     def test_validate__max_value(self):
-        field = fields.FloatField(default=10.11, max_value=10.10)
+        field = fields.Float(default=10.11, max_value=10.10)
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield field.validate()
 
         self.assertEqual(
             context.exception.error,
-            fields.NumericField.default_error_messages['max_value'].format(
+            fields.Numeric.default_error_messages['max_value'].format(
                 field
             )
         )
 
 
-class ChoiceFieldTest(monstro.testing.AsyncTestCase):
+class ChoicesTest(monstro.testing.AsyncTestCase):
 
-    choices = Choice(
+    choices = Choices(
         ('A', 'a', 'A'),
         ('B', 'b', 'B'),
     )
 
     @tornado.testing.gen_test
     def test_validate(self):
-        field = fields.ChoiceField(choices=self.choices.choices)
+        field = fields.Choice(choices=self.choices.choices)
         self.assertEqual('a', (yield field.validate('a')))
 
     @tornado.testing.gen_test
     def test_validate__invalid(self):
-        field = fields.ChoiceField(default='c', choices=self.choices.choices)
+        field = fields.Choice(default='c', choices=self.choices.choices)
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield field.validate()
 
         self.assertEqual(
             context.exception.error,
-            fields.ChoiceField.default_error_messages['invalid'].format(
+            fields.Choice.default_error_messages['invalid'].format(
                 choices=self.choices.values
             )
         )
 
 
-class MultipleChoiceFieldTest(monstro.testing.AsyncTestCase):
+class MultipleChoiceTest(monstro.testing.AsyncTestCase):
 
-    choices = Choice(
+    choices = Choices(
         ('A', 'a', 'A'),
         ('B', 'b', 'B'),
     )
 
     @tornado.testing.gen_test
     def test_validate(self):
-        field = fields.MultipleChoiceField(choices=self.choices.choices)
+        field = fields.MultipleChoice(choices=self.choices.choices)
         self.assertEqual(['a'], (yield field.validate(['a'])))
 
     @tornado.testing.gen_test
     def test_validate__invalid(self):
-        field = fields.MultipleChoiceField(choices=self.choices.choices)
+        field = fields.MultipleChoice(choices=self.choices.choices)
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield field.validate('c')
 
         self.assertEqual(
             context.exception.error,
-            fields.ArrayField.default_error_messages['invalid'].format(field)
+            fields.Array.default_error_messages['invalid'].format(field)
         )
 
     @tornado.testing.gen_test
     def test_validate__choices(self):
-        field = fields.MultipleChoiceField(choices=self.choices.choices)
+        field = fields.MultipleChoice(choices=self.choices.choices)
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield field.validate(['c'])
 
         self.assertEqual(
             context.exception.error,
-            fields.MultipleChoiceField \
+            fields.MultipleChoice \
                 .default_error_messages['choices'] \
                 .format(choices=self.choices.values)
         )
 
 
-class ArrayFieldTest(monstro.testing.AsyncTestCase):
+class ArrayTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_validate(self):
-        field = fields.ArrayField(field=fields.IntegerField())
+        field = fields.Array(field=fields.Integer())
         self.assertEqual([10], (yield field.validate(['10'])))
 
     @tornado.testing.gen_test
     def test_validate__invalid(self):
-        field = fields.ArrayField(default='string')
+        field = fields.Array(default='string')
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield field.validate()
 
         self.assertEqual(
             context.exception.error,
-            fields.ArrayField.default_error_messages['invalid'].format(field)
+            fields.Array.default_error_messages['invalid'].format(field)
         )
 
     @tornado.testing.gen_test
     def test_to_internal_value__invalid(self):
-        field = fields.ArrayField()
+        field = fields.Array()
 
         self.assertEqual(None, (yield field.to_internal_value('wrong')))
 
     @tornado.testing.gen_test
     def test_validate__invalid_item(self):
-        field = fields.ArrayField(default=['j'], field=fields.IntegerField())
+        field = fields.Array(default=['j'], field=fields.Integer())
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield field.validate()
 
         self.assertEqual(
             context.exception.error,
-            fields.ArrayField.default_error_messages['child'].format(
+            fields.Array.default_error_messages['child'].format(
                 index=0,
-                message=fields.IntegerField.default_error_messages['invalid']
+                message=fields.Integer.default_error_messages['invalid']
             )
         )
 
 
-class URLFieldTest(monstro.testing.AsyncTestCase):
+class UrlTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_validate(self):
-        field = fields.URLField()
+        field = fields.Url()
         self.assertEqual(
             'https://pyvim.com/about/',
             (yield field.validate('https://pyvim.com/about/'))
@@ -513,125 +517,179 @@ class URLFieldTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_validate__invalid_type(self):
-        field = fields.URLField(default=5)
+        field = fields.Url(default=5)
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield field.validate()
 
         self.assertEqual(
             context.exception.error,
-            fields.StringField.default_error_messages['invalid']
+            fields.String.default_error_messages['invalid']
         )
 
     @tornado.testing.gen_test
     def test_validate__invalid(self):
-        field = fields.URLField(default=':/wrong')
+        field = fields.Url(default=':/wrong')
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield field.validate()
 
         self.assertEqual(
             context.exception.error,
-            fields.URLField.default_error_messages['url']
+            fields.Url.default_error_messages['url']
         )
 
 
-class HostFieldTest(monstro.testing.AsyncTestCase):
+class HostTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_validate_ip(self):
-        field = fields.HostField()
+        field = fields.Host()
         self.assertEqual(
             '144.76.78.182', (yield field.validate('144.76.78.182'))
         )
 
     @tornado.testing.gen_test
     def test_validate_url(self):
-        field = fields.HostField()
+        field = fields.Host()
         self.assertEqual('pyvim.com', (yield field.validate('pyvim.com')))
 
     @tornado.testing.gen_test
     def test_validate__invalid_type(self):
-        field = fields.HostField(default=5)
+        field = fields.Host(default=5)
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield field.validate()
 
         self.assertEqual(
             context.exception.error,
-            fields.StringField.default_error_messages['invalid']
+            fields.String.default_error_messages['invalid']
         )
 
     @tornado.testing.gen_test
     def test_validate__invalid(self):
-        field = fields.HostField(default=':/wrong')
+        field = fields.Host(default=':/wrong')
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield field.validate()
 
         self.assertEqual(
             context.exception.error,
-            fields.HostField.default_error_messages['pattern'].format(field)
+            fields.Host.default_error_messages['pattern'].format(field)
         )
 
 
-class MapFieldTest(monstro.testing.AsyncTestCase):
+class MapTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_validate(self):
-        field = fields.MapField()
+        field = fields.Map()
         self.assertEqual(
             {'key': 'value'}, (yield field.validate({'key': 'value'}))
         )
 
     @tornado.testing.gen_test
     def test_validate__invalid_json(self):
-        field = fields.MapField(default='wrong')
+        field = fields.Map(default='wrong')
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield field.validate()
 
         self.assertEqual(
             context.exception.error,
-            fields.MapField.default_error_messages['invalid'].format(field)
+            fields.Map.default_error_messages['invalid'].format(field)
         )
 
     @tornado.testing.gen_test
     def test_to_internal_value__invalid_json(self):
-        field = fields.MapField()
+        field = fields.Map()
 
         self.assertEqual(None, (yield field.to_internal_value('wrong')))
 
     @tornado.testing.gen_test
     def test_validate__invalid_type(self):
-        field = fields.MapField(default=5)
+        field = fields.Map(default=5)
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield field.validate()
 
         self.assertEqual(
             context.exception.error,
-            fields.MapField.default_error_messages['invalid'].format(field)
+            fields.Map.default_error_messages['invalid'].format(field)
         )
 
 
-class SlugFieldTest(monstro.testing.AsyncTestCase):
+class SlugTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_validate(self):
-        field = fields.SlugField()
+        field = fields.Slug()
         self.assertEqual(
             'back-jack-100_1', (yield field.validate('back-jack-100_1'))
         )
 
     @tornado.testing.gen_test
     def test_validate__error(self):
-        field = fields.SlugField(default='wrong slug')
+        field = fields.Slug(default='wrong slug')
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield field.validate()
 
         self.assertEqual(
             context.exception.error,
-            fields.SlugField.default_error_messages['pattern'].format(field)
+            fields.Slug.default_error_messages['pattern'].format(field)
         )
+
+
+class WidgetTest(unittest.TestCase):
+
+    def test_get_metadata(self):
+        widget = widgets.Widget('test', attributes={'key': 'value'})
+
+        self.assertEqual({
+            'tag': 'test',
+            'attrs': {'key': 'value'},
+        }, widget.get_metadata())
+
+
+class InputTest(unittest.TestCase):
+
+    def test_get_metadata(self):
+        widget = widgets.Input('hidden', attributes={'key': 'value'})
+
+        self.assertEqual({
+            'tag': 'input',
+            'attrs': {'key': 'value', 'type': 'hidden'},
+        }, widget.get_metadata())
+
+
+class TextAreaTest(unittest.TestCase):
+
+    def test_get_metadata(self):
+        widget = widgets.TextArea(attributes={'key': 'value'})
+
+        self.assertEqual({
+            'tag': 'textarea',
+            'attrs': {'key': 'value'},
+        }, widget.get_metadata())
+
+
+class SelectTest(unittest.TestCase):
+
+    def test_get_metadata(self):
+        choice = Choices(
+            ('A', 'a', 'A'),
+            ('B', 'b', 'B')
+        )
+        widget = widgets.Select(
+            choices=choice.choices, attributes={'key': 'value'}
+        )
+
+        self.assertEqual({
+            'tag': 'select',
+            'attrs': {'key': 'value'},
+            'options': [
+                {'label': 'A', 'value': 'a'},
+                {'label': 'B', 'value': 'b'}
+            ],
+        }, widget.get_metadata())

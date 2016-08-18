@@ -9,7 +9,7 @@ from . import exceptions
 from .fields import Field
 
 
-class MetaSerializer(type):
+class MetaForm(type):
 
     @classmethod
     def __prepare__(mcs, *args, **kwargs):
@@ -40,27 +40,19 @@ class MetaSerializer(type):
         return cls
 
 
-class Serializer(object, metaclass=MetaSerializer):
+class Form(object, metaclass=MetaForm):
 
     def __init__(self, *, instance=None, data=None):
-        assert not (instance is not None and data is not None), (
-            'You should pass only instance or data'
-        )
-        assert instance is not None or data is not None, (
-            'You should pass instance or data'
-        )
-
         self.__instance__ = instance
-        self.__values__ = {}
+        self.__values__ = {name: None for name in self.__fields__.keys()}
 
         if self.__instance__ is not None:
-            for field in self.__fields__.keys():
-                self.__values__[field] = getattr(
-                    self.__instance__, field, None
-                )
-        elif data is not None:
-            for field in self.__fields__.keys():
-                self.__values__[field] = data.get(field, None)
+            for name in self.__fields__.keys():
+                self.__values__[name] = getattr(self.__instance__, name, None)
+
+        if data is not None:
+            for name in self.__fields__.keys():
+                self.__values__[name] = data.get(name, self.__values__[name])
 
     def __getattr__(self, attribute):
         if attribute in self.__fields__:
@@ -72,9 +64,8 @@ class Serializer(object, metaclass=MetaSerializer):
     def __setattr__(self, attribute, value):
         if attribute in self.__fields__:
             self.__values__[attribute] = value
-            return
-
-        return super().__setattr__(attribute, value)
+        else:
+            return super().__setattr__(attribute, value)
 
     @tornado.gen.coroutine
     def to_internal_value(self):
@@ -89,15 +80,15 @@ class Serializer(object, metaclass=MetaSerializer):
     @classmethod
     @tornado.gen.coroutine
     def get_metadata(cls):
-        meta = []
+        metadata = []
 
         for field in cls.__fields__.values():
-            meta.append((yield field.get_metadata()))
+            metadata.append((yield field.get_metadata()))
 
-        return meta
+        return metadata
 
     @tornado.gen.coroutine
-    def get_data(self):
+    def serialize(self):
         return (yield self.to_internal_value())
 
     @tornado.gen.coroutine
@@ -126,3 +117,7 @@ class Serializer(object, metaclass=MetaSerializer):
             raise exceptions.ValidationError(errors)
 
         return copy.copy(self.__values__)
+
+    @tornado.gen.coroutine
+    def save(self):
+        pass
