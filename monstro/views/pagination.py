@@ -15,7 +15,6 @@ class Pagination(object):
     def __init__(self, serializer=None, query_keys=None):
         self.serializer = serializer
         self.query_keys = query_keys or self.query_keys
-        self.data = {}
 
     def bind(self, **kwargs):
         raise NotImplementedError()
@@ -45,15 +44,22 @@ class Pagination(object):
         count = yield queryset.count()
         instances = yield queryset[offset:limit]
 
-        self.data['page'] = int(math.ceil(float(offset) / size))
-        self.data['count'] = count
-        self.data['pages'] = int(math.ceil(float(count) / size))
-        self.data['items'] = []
+        pages = {}
+        pages['current'] = int(math.ceil(float(offset) / size)) + 1
+        pages['count'] = int(math.ceil(float(count) / size))
+
+        if pages['current'] > 1:
+            pages['previous'] = pages['current'] - 1
+
+        if pages['current'] < pages['count']:
+            pages['next'] = pages['current'] + 1
+
+        items = []
 
         for instance in instances:
-            self.data['items'].append((yield self.serialize(instance)))
+            items.append((yield self.serialize(instance)))
 
-        return self.data
+        return {'pages': pages, 'items': items}
 
 
 class PageNumberPagination(Pagination):

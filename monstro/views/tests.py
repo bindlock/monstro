@@ -386,9 +386,9 @@ class PageNumberPaginationTest(monstro.testing.AsyncTestCase):
 
         data = yield pagination.paginate(self.TestModel.objects.filter())
 
-        self.assertEqual(0, data['page'])
-        self.assertEqual(5, data['count'])
-        self.assertEqual(5, data['pages'])
+        self.assertEqual(1, data['pages']['current'])
+        self.assertEqual(2, data['pages']['next'])
+        self.assertEqual(5, data['pages']['count'])
         self.assertEqual(1, len(data['items']))
         self.assertEqual('0', data['items'][0].value)
 
@@ -432,9 +432,10 @@ class LimitOffsetPaginationTest(monstro.testing.AsyncTestCase):
 
         data = yield pagination.paginate(self.TestModel.objects.filter())
 
-        self.assertEqual(2, data['page'])
-        self.assertEqual(5, data['count'])
-        self.assertEqual(5, data['pages'])
+        self.assertEqual(3, data['pages']['current'])
+        self.assertEqual(2, data['pages']['previous'])
+        self.assertEqual(4, data['pages']['next'])
+        self.assertEqual(5, data['pages']['count'])
         self.assertEqual(1, len(data['items']))
         self.assertEqual('2', data['items'][0].value)
 
