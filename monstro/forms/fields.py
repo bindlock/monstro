@@ -61,7 +61,10 @@ class Field(object):
     @tornado.gen.coroutine
     def validate(self, value=None, model=None):
         if value is None:
-            value = self.default
+            if callable(self.default):
+                value = self.default()
+            else:
+                value = self.default
 
         if value is None:
             if self.required:
@@ -110,7 +113,7 @@ class Field(object):
             'help_text': self.help_text,
             'required': self.required,
             'read_only': self.read_only,
-            'default': self.default and (
+            'default': self.default and not callable(self.default) and (
                 yield self.to_internal_value(self.default)
             ),
             'widget': self.widget and self.widget.get_metadata()

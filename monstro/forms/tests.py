@@ -28,6 +28,12 @@ class FieldTest(monstro.testing.AsyncTestCase):
         self.assertEqual(field.validators, [])
 
     @tornado.testing.gen_test
+    def test_validate__callable_default(self):
+        field = fields.Integer(default=lambda: 1 + 1)
+
+        self.assertEqual(2, (yield field.validate(None)))
+
+    @tornado.testing.gen_test
     def test__validation_error(self):
         field = fields.Integer()
 
