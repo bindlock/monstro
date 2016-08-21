@@ -2,3 +2,4 @@
 omit =
   */test*
   */management/*
+  */core/app.py
