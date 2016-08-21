@@ -411,7 +411,7 @@ class DateTime(Field):
     def __init__(self, *, input_formats=None, output_format=None,
                  auto_now=False, auto_now_on_create=False, **kwargs):
         super().__init__(**kwargs)
-        self.input_formats = input_formats or self.input_formats
+        self.input_formats = self.input_formats + (input_formats or [])
         self.output_format = output_format or self.default_format
         self.auto_now = auto_now
         self.auto_now_on_create = auto_now_on_create
@@ -459,7 +459,7 @@ class Date(Field):
     def __init__(self, *, input_formats=None, output_format=None,
                  auto_now=False, auto_now_on_create=False, **kwargs):
         super().__init__(**kwargs)
-        self.input_formats = input_formats or self.input_formats
+        self.input_formats = self.input_formats + (input_formats or [])
         self.output_format = output_format or self.default_format
         self.auto_now = auto_now
         self.auto_now_on_create = auto_now_on_create
@@ -506,7 +506,7 @@ class Time(Field):
     def __init__(self, *, input_formats=None, output_format=None,
                  auto_now=False, auto_now_on_create=False, **kwargs):
         super().__init__(**kwargs)
-        self.input_formats = input_formats or self.input_formats
+        self.input_formats = self.input_formats + (input_formats or [])
         self.output_format = output_format or self.default_format
         self.auto_now = auto_now
         self.auto_now_on_create = auto_now_on_create
