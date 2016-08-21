@@ -417,7 +417,7 @@ class DateTime(Field):
         self.auto_now_on_create = auto_now_on_create
 
         if self.auto_now_on_create and self.default is None:
-            self.default = datetime.datetime.now()
+            self.default = datetime.datetime.now
 
     @tornado.gen.coroutine
     def to_internal_value(self, value):
@@ -465,7 +465,7 @@ class Date(Field):
         self.auto_now_on_create = auto_now_on_create
 
         if self.auto_now_on_create and self.default is None:
-            self.default = datetime.datetime.now().date()
+            self.default = datetime.datetime.now
 
     @tornado.gen.coroutine
     def to_internal_value(self, value):
@@ -512,7 +512,7 @@ class Time(Field):
         self.auto_now_on_create = auto_now_on_create
 
         if self.auto_now_on_create and self.default is None:
-            self.default = datetime.datetime.now().time()
+            self.default = datetime.datetime.now
 
     @tornado.gen.coroutine
     def to_internal_value(self, value):
@@ -532,7 +532,7 @@ class Time(Field):
         if isinstance(value, str):
             for input_format in self.input_formats:
                 try:
-                    print(datetime.datetime.strptime(value, input_format))
+                    datetime.datetime.strptime(value, input_format)
                     break
                 except ValueError:
                     continue
