@@ -1,6 +1,7 @@
 # coding=utf-8
 
 import unittest
+import datetime
 
 import tornado.gen
 import tornado.testing
@@ -639,6 +640,162 @@ class SlugTest(monstro.testing.AsyncTestCase):
             context.exception.error,
             fields.Slug.default_error_messages['pattern'].format(field)
         )
+
+
+class DateTimeTest(monstro.testing.AsyncTestCase):
+
+    @tornado.testing.gen_test
+    def test_init__auto_now_on_create(self):
+        field = fields.DateTime(auto_now_on_create=True)
+
+        self.assertTrue(field.default)
+
+    @tornado.testing.gen_test
+    def test_is_valid(self):
+        yield fields.DateTime().is_valid('2015-07-13T00:00:00')
+
+    @tornado.testing.gen_test
+    def test_is_valid__auto_now(self):
+        yield fields.DateTime(auto_now=True).is_valid(None)
+
+    @tornado.testing.gen_test
+    def test_is_valid__wrong_string(self):
+        field = fields.DateTime()
+
+        with self.assertRaises(exceptions.ValidationError) as context:
+            yield field.is_valid('wrong')
+
+        self.assertEqual(
+            context.exception.error,
+            fields.DateTime.default_error_messages['invalid'].format(field)
+        )
+
+    @tornado.testing.gen_test
+    def test_to_internal_value(self):
+        field = fields.DateTime()
+
+        self.assertEqual(
+            '2015-07-13T00:00:00',
+            (yield field.to_internal_value(datetime.datetime(2015, 7, 13)))
+        )
+
+    @tornado.testing.gen_test
+    def test_to_internal_value__string(self):
+        field = fields.DateTime()
+
+        self.assertEqual(
+            '2015-07-13T14:08:12',
+            (yield field.to_internal_value('2015-07-13T14:08:12')),
+        )
+
+    @tornado.testing.gen_test
+    def test_to_internal_value__auto_now(self):
+        field = fields.DateTime(auto_now=True)
+
+        self.assertTrue((yield field.to_internal_value(None)))
+
+
+class DateTest(monstro.testing.AsyncTestCase):
+
+    @tornado.testing.gen_test
+    def test_init__auto_now_on_create(self):
+        field = fields.Date(auto_now_on_create=True)
+
+        self.assertTrue(field.default)
+
+    @tornado.testing.gen_test
+    def test_is_valid(self):
+        yield fields.Date().is_valid('2015-07-13')
+
+    @tornado.testing.gen_test
+    def test_is_valid__auto_now(self):
+        yield fields.Date(auto_now=True).is_valid(None)
+
+    @tornado.testing.gen_test
+    def test_is_valid__wrong_string(self):
+        field = fields.Date()
+
+        with self.assertRaises(exceptions.ValidationError) as context:
+            yield field.is_valid('wrong')
+
+        self.assertEqual(
+            context.exception.error,
+            fields.Date.default_error_messages['invalid'].format(field)
+        )
+
+    @tornado.testing.gen_test
+    def test_to_internal_value(self):
+        field = fields.Date()
+
+        self.assertEqual(
+            '2015-07-13',
+            (yield field.to_internal_value(datetime.date(2015, 7, 13)))
+        )
+
+    @tornado.testing.gen_test
+    def test_to_internal_value__string(self):
+        field = fields.Date()
+
+        self.assertEqual(
+            '2015-07-13', (yield field.to_internal_value('2015-07-13'))
+        )
+
+    @tornado.testing.gen_test
+    def test_to_internal_value__auto_now(self):
+        field = fields.Date(auto_now=True)
+
+        self.assertTrue((yield field.to_internal_value(None)))
+
+
+class TimeTest(monstro.testing.AsyncTestCase):
+
+    @tornado.testing.gen_test
+    def test_init__auto_now_on_create(self):
+        field = fields.Time(auto_now_on_create=True)
+
+        self.assertTrue(field.default)
+
+    @tornado.testing.gen_test
+    def test_is_valid(self):
+        yield fields.Time().is_valid('00:00:00')
+
+    @tornado.testing.gen_test
+    def test_is_valid__auto_now(self):
+        yield fields.Time(auto_now=True).is_valid(None)
+
+    @tornado.testing.gen_test
+    def test_is_valid__wrong_string(self):
+        field = fields.Time()
+
+        with self.assertRaises(exceptions.ValidationError) as context:
+            yield field.is_valid('wrong')
+
+        self.assertEqual(
+            context.exception.error,
+            fields.Time.default_error_messages['invalid'].format(field)
+        )
+
+    @tornado.testing.gen_test
+    def test_to_internal_value(self):
+        field = fields.Time()
+
+        self.assertEqual(
+            '00:00:00', (yield field.to_internal_value(datetime.time()))
+        )
+
+    @tornado.testing.gen_test
+    def test_to_internal_value__string(self):
+        field = fields.Time()
+
+        self.assertEqual(
+            '00:00:00', (yield field.to_internal_value('00:00:00'))
+        )
+
+    @tornado.testing.gen_test
+    def test_to_internal_value__auto_now(self):
+        field = fields.Time(auto_now=True)
+
+        self.assertTrue((yield field.to_internal_value(None)))
 
 
 class WidgetTest(unittest.TestCase):
