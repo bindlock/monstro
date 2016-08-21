@@ -276,7 +276,7 @@ class ManagerTest(monstro.testing.AsyncTestCase):
 
         self.model = Test
 
-        self.number = random.randint(10, 20)
+        self.number = random.randint(11, 20)
 
         for i in range(self.number):
             yield self.model.objects.create(name='test{}'.format(i))
