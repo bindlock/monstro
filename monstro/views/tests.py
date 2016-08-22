@@ -112,13 +112,30 @@ class ListViewTest(monstro.testing.AsyncHTTPTestCase):
         model = User
         template_name = 'index.html'
 
+    class TestSearchView(ListView):
+
+        model = User
+        template_name = 'index.html'
+        search_fields = ('value',)
+
     def get_app(self):
-        return tornado.web.Application([tornado.web.url(r'/', self.TestView)])
+        return tornado.web.Application([
+            tornado.web.url(r'/', self.TestView),
+            tornado.web.url(r'/search', self.TestSearchView),
+        ])
 
     def test_get(self):
         with mock.patch.object(self.TestView, 'render_string') as m:
             m.return_value = 'test'
             response = self.fetch('/')
+
+        self.assertEqual(200, response.code)
+        self.assertEqual('test', response.body.decode('utf-8'))
+
+    def test_get__search(self):
+        with mock.patch.object(self.TestSearchView, 'render_string') as m:
+            m.return_value = 'test'
+            response = self.fetch('/search?q=1')
 
         self.assertEqual(200, response.code)
         self.assertEqual('test', response.body.decode('utf-8'))

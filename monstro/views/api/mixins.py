@@ -10,7 +10,9 @@ class ModelAPIMixin(object):
         self.set_status(200)
         self.finish({
             'fields': (yield self.form_class.get_metadata()),
-            'lookup_field': self.lookup_field
+            'lookup_field': self.lookup_field,
+            'search_fields': self.search_fields,
+            'search_query_argument': self.search_query_argument
         })
 
 

@@ -5,6 +5,8 @@ import tornado.gen
 import bson
 import bson.errors
 
+from monstro.orm import Or, Regex
+
 
 class RedirectResponseMixin(object):
 
@@ -52,6 +54,11 @@ class QuerysetResponseMixin(ModelResponseMixin):
 class ListResponseMixin(QuerysetResponseMixin):
 
     pagination = None
+    search_fields = None
+    search_query_argument = 'q'
+
+    def get_search_fields(self):
+        return self.search_fields or []
 
     def get_pagination(self):
         return self.pagination
@@ -60,6 +67,12 @@ class ListResponseMixin(QuerysetResponseMixin):
     def paginate(self):
         queryset = yield self.get_queryset()
         pagination = self.get_pagination()
+        search_fields = self.get_search_fields()
+        search_query = self.get_query_argument(self.search_query_argument, '')
+
+        if search_fields and search_query:
+            query = Or(Regex({f: search_query for f in search_fields}))
+            queryset = queryset.filter(**query)
 
         if pagination:
             pagination.bind(**self.request.GET)

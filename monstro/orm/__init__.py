@@ -25,3 +25,7 @@ from .fields import ForeignKey
 from .model import Model
 from .manager import Manager
 from .exceptions import DoesNotExist
+from .expressions import (
+    Or,
+    Regex
+)
