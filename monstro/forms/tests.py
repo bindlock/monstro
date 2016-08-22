@@ -696,10 +696,34 @@ class DateTimeTest(monstro.testing.AsyncTestCase):
         )
 
     @tornado.testing.gen_test
+    def test_to_internal_value__wrong_string(self):
+        field = fields.DateTime()
+
+        self.assertEqual(None, (yield field.to_internal_value('wrong')))
+
+    @tornado.testing.gen_test
     def test_to_internal_value__auto_now(self):
         field = fields.DateTime(auto_now=True)
 
         self.assertTrue((yield field.to_internal_value(None)))
+
+    @tornado.testing.gen_test
+    def test_to_python(self):
+        field = fields.DateTime()
+
+        self.assertIsInstance(
+            (yield field.to_python('2015-07-13T14:08:12')),
+            datetime.datetime
+        )
+
+    @tornado.testing.gen_test
+    def test_to_representation(self):
+        field = fields.DateTime(output_format='%Y-%m-%d %H:%M:%S')
+
+        self.assertEqual(
+            '2015-07-13 00:00:00',
+            (yield field.to_representation(datetime.date(2015, 7, 13)))
+        )
 
 
 class DateTest(monstro.testing.AsyncTestCase):
@@ -732,6 +756,18 @@ class DateTest(monstro.testing.AsyncTestCase):
         )
 
     @tornado.testing.gen_test
+    def test_is_valid__wrong_object(self):
+        field = fields.Date()
+
+        with self.assertRaises(exceptions.ValidationError) as context:
+            yield field.is_valid(1)
+
+        self.assertEqual(
+            context.exception.error,
+            fields.Date.default_error_messages['invalid'].format(field)
+        )
+
+    @tornado.testing.gen_test
     def test_to_internal_value(self):
         field = fields.Date()
 
@@ -753,6 +789,29 @@ class DateTest(monstro.testing.AsyncTestCase):
         field = fields.Date(auto_now=True)
 
         self.assertTrue((yield field.to_internal_value(None)))
+
+    @tornado.testing.gen_test
+    def test_to_python(self):
+        field = fields.Date()
+
+        self.assertIsInstance(
+            (yield field.to_python('2015-07-13')), datetime.date
+        )
+
+    @tornado.testing.gen_test
+    def test_to_python__wrong_string(self):
+        field = fields.Date()
+
+        self.assertEqual(None, (yield field.to_python('wrong')))
+
+    @tornado.testing.gen_test
+    def test_to_representation(self):
+        field = fields.Date(output_format='%Y-%d-%m')
+
+        self.assertEqual(
+            '2015-13-07',
+            (yield field.to_representation(datetime.date(2015, 7, 13)))
+        )
 
 
 class TimeTest(monstro.testing.AsyncTestCase):
@@ -805,6 +864,22 @@ class TimeTest(monstro.testing.AsyncTestCase):
         field = fields.Time(auto_now=True)
 
         self.assertTrue((yield field.to_internal_value(None)))
+
+    @tornado.testing.gen_test
+    def test_to_python(self):
+        field = fields.Time()
+
+        self.assertIsInstance(
+            (yield field.to_python('14:08:12')), datetime.time
+        )
+
+    @tornado.testing.gen_test
+    def test_to_representation(self):
+        field = fields.Time(output_format='%H-%M-%S')
+
+        self.assertEqual(
+            '00-00-00', (yield field.to_representation(datetime.time()))
+        )
 
 
 class WidgetTest(unittest.TestCase):

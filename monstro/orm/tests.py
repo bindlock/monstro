@@ -388,10 +388,10 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
 class IdTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
-    def test_to_representation(self):
+    def test_to_python(self):
         field = Id()
 
-        value = yield field.to_representation(str(ObjectId()))
+        value = yield field.to_python(str(ObjectId()))
 
         self.assertIsInstance(value, ObjectId)
 
@@ -474,33 +474,33 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
         yield field.validate(instance._id)
 
     @tornado.testing.gen_test
-    def test_to_representation(self):
+    def test_to_python(self):
         field = ForeignKey(
             default=self.instance.name, related_model=self.model,
             related_field='name'
         )
-        value = yield field.to_representation(field.default)
+        value = yield field.to_python(field.default)
 
         self.assertEqual(value.name, self.instance.name)
 
     @tornado.testing.gen_test
-    def test_to_representation__from_string_id(self):
+    def test_to_python__from_string_id(self):
         field = ForeignKey(related_model=self.model)
-        value = yield field.to_representation(str(self.instance._id))
+        value = yield field.to_python(str(self.instance._id))
 
         self.assertEqual(value.name, self.instance.name)
 
     @tornado.testing.gen_test
-    def test_to_representation__from_string_id_error(self):
+    def test_to_python__from_string_id_error(self):
         field = ForeignKey(related_model=self.model)
 
-        self.assertEqual(None, (yield field.to_representation('blackjack')))
+        self.assertEqual(None, (yield field.to_python('blackjack')))
 
     @tornado.testing.gen_test
-    def test_to_representation__does_not_exist(self):
+    def test_to_python__does_not_exist(self):
         field = ForeignKey(related_model=self.model, related_field='name')
 
-        self.assertEqual(None, (yield field.to_representation('blackjack')))
+        self.assertEqual(None, (yield field.to_python('blackjack')))
 
     @tornado.testing.gen_test
     def test_validate(self):

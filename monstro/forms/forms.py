@@ -89,13 +89,19 @@ class Form(object, metaclass=MetaForm):
 
     @tornado.gen.coroutine
     def serialize(self):
-        return (yield self.to_internal_value())
+        data = {}
+
+        for name, field in self.__fields__.items():
+            value = self.__values__.get(name, field.default)
+            data[name] = yield field.to_representation(value)
+
+        return data
 
     @tornado.gen.coroutine
     def construct(self):
         for name, field in self.__fields__.items():
             value = self.__values__.get(name, field.default)
-            self.__values__[name] = yield field.to_representation(value)
+            self.__values__[name] = yield field.to_python(value)
 
     @tornado.gen.coroutine
     def validate(self):

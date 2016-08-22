@@ -102,6 +102,10 @@ class Field(object):
         return value
 
     @tornado.gen.coroutine
+    def to_python(self, value):
+        return value
+
+    @tornado.gen.coroutine
     def to_internal_value(self, value):
         return value
 
@@ -171,8 +175,6 @@ class String(Type):
     def to_internal_value(self, value):
         if value is not None:
             return str(value)
-
-        return value
 
 
 class Numeric(Type):
@@ -387,7 +389,7 @@ class Map(Field):
         return value
 
     @tornado.gen.coroutine
-    def to_representation(self, value):
+    def to_python(self, value):
         return (yield self.to_internal_value(value))
 
     @tornado.gen.coroutine
@@ -406,12 +408,11 @@ class DateTime(Field):
     }
 
     default_format = '%Y-%m-%dT%H:%M:%S'
-    input_formats = [default_format]
 
     def __init__(self, *, input_formats=None, output_format=None,
                  auto_now=False, auto_now_on_create=False, **kwargs):
         super().__init__(**kwargs)
-        self.input_formats = self.input_formats + (input_formats or [])
+        self.input_formats = [self.default_format] + (input_formats or [])
         self.output_format = output_format or self.default_format
         self.auto_now = auto_now
         self.auto_now_on_create = auto_now_on_create
@@ -425,10 +426,23 @@ class DateTime(Field):
             value = datetime.datetime.now()
 
         if isinstance(value, str):
-            return value
+            for input_format in self.input_formats:
+                try:
+                    value = datetime.datetime.strptime(value, input_format)
+                    break
+                except ValueError:
+                    continue
+            else:
+                return None
 
-        return value.strftime(self.output_format)
+        return value.strftime(self.default_format)
 
+    @tornado.gen.coroutine
+    def to_python(self, value):
+        try:
+            return datetime.datetime.strptime(value, self.default_format)
+        except ValueError:
+            return None
 
     @tornado.gen.coroutine
     def is_valid(self, value):
@@ -444,9 +458,16 @@ class DateTime(Field):
                     continue
             else:
                 self.fail('invalid')
+        elif not hasattr(value, 'strftime'):
+            self.fail('invalid')
+
+    @tornado.gen.coroutine
+    def to_representation(self, value):
+        if value is not None:
+            return value.strftime(self.output_format)
 
 
-class Date(Field):
+class Date(DateTime):
 
     widget = widgets.Input('date')
     default_error_messages = {
@@ -454,46 +475,16 @@ class Date(Field):
     }
 
     default_format = '%Y-%m-%d'
-    input_formats = [default_format]
-
-    def __init__(self, *, input_formats=None, output_format=None,
-                 auto_now=False, auto_now_on_create=False, **kwargs):
-        super().__init__(**kwargs)
-        self.input_formats = self.input_formats + (input_formats or [])
-        self.output_format = output_format or self.default_format
-        self.auto_now = auto_now
-        self.auto_now_on_create = auto_now_on_create
-
-        if self.auto_now_on_create and self.default is None:
-            self.default = datetime.datetime.now
 
     @tornado.gen.coroutine
-    def to_internal_value(self, value):
-        if self.auto_now:
-            value = datetime.datetime.now().date()
+    def to_python(self, value):
+        value = yield super().to_python(value)
 
-        if isinstance(value, str):
-            return value
-
-        return value.strftime(self.output_format)
-
-    @tornado.gen.coroutine
-    def is_valid(self, value):
-        if self.auto_now:
-            return
-
-        if isinstance(value, str):
-            for input_format in self.input_formats:
-                try:
-                    datetime.datetime.strptime(value, input_format)
-                    break
-                except ValueError:
-                    continue
-            else:
-                self.fail('invalid')
+        if value:
+            return value.date()
 
 
-class Time(Field):
+class Time(DateTime):
 
     widget = widgets.Input('time')
     default_error_messages = {
@@ -501,40 +492,10 @@ class Time(Field):
     }
 
     default_format = '%H:%M:%S'
-    input_formats = [default_format]
-
-    def __init__(self, *, input_formats=None, output_format=None,
-                 auto_now=False, auto_now_on_create=False, **kwargs):
-        super().__init__(**kwargs)
-        self.input_formats = self.input_formats + (input_formats or [])
-        self.output_format = output_format or self.default_format
-        self.auto_now = auto_now
-        self.auto_now_on_create = auto_now_on_create
-
-        if self.auto_now_on_create and self.default is None:
-            self.default = datetime.datetime.now
 
     @tornado.gen.coroutine
-    def to_internal_value(self, value):
-        if self.auto_now:
-            value = datetime.datetime.now().time()
+    def to_python(self, value):
+        value = yield super().to_python(value)
 
-        if isinstance(value, str):
-            return value
-
-        return value.strftime(self.output_format)
-
-    @tornado.gen.coroutine
-    def is_valid(self, value):
-        if self.auto_now:
-            return
-
-        if isinstance(value, str):
-            for input_format in self.input_formats:
-                try:
-                    datetime.datetime.strptime(value, input_format)
-                    break
-                except ValueError:
-                    continue
-            else:
-                self.fail('invalid')
+        if value:
+            return value.time()

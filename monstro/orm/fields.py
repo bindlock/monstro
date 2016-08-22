@@ -40,7 +40,7 @@ class Id(String):
         return None
 
     @tornado.gen.coroutine
-    def to_representation(self, value):
+    def to_python(self, value):
         return (yield self.to_internal_value(value))
 
 
@@ -67,7 +67,7 @@ class ForeignKey(Field):
         return self.related_model
 
     @tornado.gen.coroutine
-    def to_representation(self, value):
+    def to_python(self, value):
         related_model = self.get_related_model()
 
         if isinstance(value, str) or isinstance(value, ObjectId):
