@@ -122,6 +122,10 @@ class ForeignKey(Field):
         return value
 
     @tornado.gen.coroutine
+    def to_representation(self, value):
+        return (yield self.to_internal_value(value))
+
+    @tornado.gen.coroutine
     def get_metadata(self):
         items = yield self.get_related_model().objects.all()
         choices = []

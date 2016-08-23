@@ -170,6 +170,14 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
         self.assertEqual(str(self.instance._id), value)
 
     @tornado.testing.gen_test
+    def test_to_representation(self):
+        field = ForeignKey(related_model=self.model)
+
+        value = yield field.to_representation(self.instance)
+
+        self.assertEqual(str(self.instance._id), value)
+
+    @tornado.testing.gen_test
     def test_to_internal_value__invalid(self):
         field = ForeignKey(related_model=self.model)
 

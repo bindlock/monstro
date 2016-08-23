@@ -21,9 +21,20 @@ class APIViewTest(monstro.testing.AsyncHTTPTestCase):
 
         value = String()
 
+        @tornado.gen.coroutine
+        def validate(self):
+            data = yield super().validate()
+
+            if self.value == 'wrong':
+                raise self.ValidationError('wrong')
+
+            return data
+
     def get_app(self):
 
         class TestView(APIView):
+
+            form_class = self.TestForm
 
             @tornado.gen.coroutine
             def get(self):
@@ -75,6 +86,14 @@ class APIViewTest(monstro.testing.AsyncHTTPTestCase):
                 'status_code': 400
             }, data
         )
+
+    def test_post__validate(self):
+        payload = {'value': 'wrong'}
+        response = self.fetch('/', method='POST', body=json.dumps(payload))
+        data = json.loads(response.body.decode('utf-8'))
+
+        self.assertEqual(400, response.code)
+        self.assertEqual({'request_error': 'wrong'}, data['details'])
 
     def test_put(self):
         payload = {'value': 'test'}
@@ -133,7 +152,6 @@ class APIViewWithAuthenticationTest(monstro.testing.AsyncHTTPTestCase):
 
     def test_get__error_authentication(self):
         response = self.fetch('/')
-        print(response.body)
         data = json.loads(response.body.decode('utf-8'))
 
         self.assertEqual(401, response.code)
@@ -155,6 +173,15 @@ class ModelAPIViewTest(monstro.testing.AsyncHTTPTestCase):
         __collection__ = 'test'
 
         value = String()
+
+        @tornado.gen.coroutine
+        def validate(self):
+            data = yield super().validate()
+
+            if self.value == 'wrong':
+                raise self.ValidationError('wrong')
+
+            return data
 
     class TestForm(Form):
 
@@ -241,6 +268,14 @@ class ModelAPIViewTest(monstro.testing.AsyncHTTPTestCase):
 
         self.assertEqual(400, response.code)
 
+    def test_post__validate(self):
+        payload = {'value': 'wrong'}
+        response = self.fetch('/test', method='POST', body=json.dumps(payload))
+        data = json.loads(response.body.decode('utf-8'))
+
+        self.assertEqual(400, response.code)
+        self.assertEqual({'request_error': 'wrong'}, data['details'])
+
     def test_put(self):
         instance = self.run_sync(self.TestModel.objects.create, value='test')
 
@@ -267,6 +302,19 @@ class ModelAPIViewTest(monstro.testing.AsyncHTTPTestCase):
         )
 
         self.assertEqual(400, response.code)
+
+    def test_put__validate(self):
+        instance = self.run_sync(self.TestModel.objects.create, value='test')
+        
+        payload = {'value': 'wrong'}
+        response = self.fetch(
+            '/test/{}'.format(instance._id), method='PUT',
+            body=json.dumps(payload)
+        )
+        data = json.loads(response.body.decode('utf-8'))
+
+        self.assertEqual(400, response.code)
+        self.assertEqual({'request_error': 'wrong'}, data['details'])
 
     def test_patch(self):
         instance = self.run_sync(self.TestModel.objects.create, value='test')
@@ -404,7 +452,6 @@ class ModelAPIViewWithFormsTest(monstro.testing.AsyncHTTPTestCase):
             method='PUT', body=json.dumps(payload)
         )
         data = json.loads(response.body.decode('utf-8'))
-        print(data)
 
         instance = self.run_sync(self.TestModel.objects.last)
 
