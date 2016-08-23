@@ -5,7 +5,7 @@ import os
 
 from setuptools import setup, find_packages
 
-VERSION = '2.1.0'
+VERSION = '2.1.1'
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -34,7 +34,7 @@ if __name__ == '__main__':
         url='https://github.com/pyvim/monstro',
         download_url='https://github.com/pyvim/monstro/tarball/master',
         license='MIT',
-        keywords='framework, web, tornado, mongodb, motor, server, asynchronous',
+        keywords='framework, web, tornado, mongodb, motor, asynchronous',
         classifiers=[
             'Intended Audience :: Developers',
             'Programming Language :: Python :: 3',
