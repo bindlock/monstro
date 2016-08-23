@@ -23,6 +23,9 @@ class CreateAPIMixin(ModelAPIMixin):
         try:
             instance = yield self.model.objects.create(**self.data)
         except self.model.ValidationError as e:
+            if isinstance(e.error, str):
+                return self.send_error(400, reason=e.error)
+
             return self.send_error(400, details=e.error)
 
         self.set_status(201)
@@ -38,6 +41,9 @@ class UpdateAPIMixin(ModelAPIMixin):
         try:
             yield instance.update(**self.data)
         except self.model.ValidationError as e:
+            if isinstance(e.error, str):
+                return self.send_error(400, reason=e.error)
+
             return self.send_error(400, details=e.error)
 
         self.set_status(200)

@@ -63,6 +63,9 @@ class APIView(views.View):
                 try:
                     self.data = yield form.validate()
                 except self.form_class.ValidationError as e:
+                    if isinstance(e.error, str):
+                        return self.send_error(400, reason=e.error)
+
                     return self.send_error(400, details=e.error)
 
             self.data.pop('_id', None)
