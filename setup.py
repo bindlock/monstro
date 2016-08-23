@@ -16,25 +16,26 @@ REQUIRES = [
     'tornado',
 ]
 
-setup(
-    name='monstro',
-    version=VERSION,
-    packages=find_packages(exclude=['tests*']),
-    install_requires=REQUIRES,
-    include_package_data=True,
-    entry_points={
-        'console_scripts': ['monstro = monstro.management:manage']
-    },
-    description='Web framework based on Tornado and MongoDB',
-    long_description=LONG_DESCRIPTION,
-    author='Vitalii Maslov',
-    author_email='me@pyvim.com',
-    url='https://github.com/pyvim/monstro',
-    download_url='https://github.com/pyvim/monstro/tarball/master',
-    license='MIT',
-    keywords='framework, web, tornado, mongodb, motor, server, asynchronous',
-    classifiers=[
-        'Intended Audience :: Developers',
-        'Programming Language :: Python :: 3',
-    ],
-)
+if __name__ == '__main__':
+    setup(
+        name='monstro',
+        version=VERSION,
+        packages=find_packages(exclude=['tests*']),
+        install_requires=REQUIRES,
+        include_package_data=True,
+        entry_points={
+            'console_scripts': ['monstro = monstro.management:manage']
+        },
+        description='Web framework based on Tornado and MongoDB',
+        long_description=LONG_DESCRIPTION,
+        author='Vitalii Maslov',
+        author_email='me@pyvim.com',
+        url='https://github.com/pyvim/monstro',
+        download_url='https://github.com/pyvim/monstro/tarball/master',
+        license='MIT',
+        keywords='framework, web, tornado, mongodb, motor, server, asynchronous',
+        classifiers=[
+            'Intended Audience :: Developers',
+            'Programming Language :: Python :: 3',
+        ],
+    )
