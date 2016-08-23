@@ -6,7 +6,7 @@ from monstro.core.exceptions import MonstroError
 from monstro.modules import ModuleConfiguration, ModulesRegistry
 from monstro.orm.model import Model
 
-from .exceptions import ModuleNotFound
+from monstro.modules.exceptions import ModuleNotFound
 
 
 class ModuleConfigurationTest(unittest.TestCase):

@@ -19,7 +19,7 @@ REQUIRES = [
 setup(
     name='monstro',
     version=VERSION,
-    packages=find_packages(),
+    packages=find_packages(exclude=['tests*']),
     install_requires=REQUIRES,
     include_package_data=True,
     entry_points={

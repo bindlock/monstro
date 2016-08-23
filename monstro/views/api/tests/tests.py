@@ -12,7 +12,7 @@ from monstro.orm import Model
 from monstro.views.pagination import PageNumberPagination
 from monstro.views.authentication import HeaderAuthentication
 
-from .views import APIView, ModelAPIView
+from monstro.views.api import APIView, ModelAPIView
 
 
 class APIViewTest(monstro.testing.AsyncHTTPTestCase):

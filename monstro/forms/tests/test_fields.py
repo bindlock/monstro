@@ -1,6 +1,5 @@
 # coding=utf-8
 
-import unittest
 import datetime
 
 import tornado.gen
@@ -10,7 +9,7 @@ import tornado.ioloop
 import monstro.testing
 from monstro.utils import Choices
 
-from . import fields, forms, exceptions, widgets
+from monstro.forms import fields, exceptions
 
 
 class FieldTest(monstro.testing.AsyncTestCase):
@@ -79,160 +78,6 @@ class FieldTest(monstro.testing.AsyncTestCase):
             'default': None,
             'widget': None
         }, (yield field.get_metadata()))
-
-
-class FormTest(monstro.testing.AsyncTestCase):
-
-    def test_init__with_data(self):
-        instance = forms.Form(data={'name': 'test'})
-
-        self.assertEqual({}, instance.__values__)
-
-    def test_init__with_instance(self):
-        class CustomForm(forms.Form):
-
-            name = fields.String()
-
-        class Instance(object):
-
-            name = 'test'
-
-        instance = CustomForm(instance=Instance)
-
-        self.assertEqual(instance.__values__['name'], 'test')
-
-    def test_new(self):
-        class CustomForm(forms.Form):
-
-            name = fields.String()
-
-        self.assertIn('name', CustomForm.__fields__)
-
-    def test_set_value(self):
-        class CustomForm(forms.Form):
-
-            name = fields.String()
-
-        instance = CustomForm(data={'name': ''})
-        instance.name = 'test'
-
-        self.assertEqual(instance.name, 'test')
-
-    @tornado.testing.gen_test
-    def test_getattr__attribute_error(self):
-        class CustomForm(forms.Form):
-
-            name = fields.String()
-
-        instance = CustomForm(data={'name': 'test'})
-
-        with self.assertRaises(AttributeError):
-            instance.none()
-
-    @tornado.testing.gen_test
-    def test_construct(self):
-        class CustomForm(forms.Form):
-
-            map = fields.Map()
-
-        instance = CustomForm(data={'map': '{"name": "test"}'})
-
-        yield instance.construct()
-
-        self.assertEqual(instance.map['name'], 'test')
-
-    @tornado.testing.gen_test
-    def test_validate(self):
-        class CustomForm(forms.Form):
-            __collection__ = 'test'
-
-            string = fields.String()
-
-        instance = CustomForm(data={'string': 'test'})
-
-        data = yield instance.validate()
-
-        self.assertEqual(data['string'], 'test')
-
-    @tornado.testing.gen_test
-    def test_validate__error(self):
-        class CustomForm(forms.Form):
-            __collection__ = 'test'
-
-            string = fields.String()
-
-        instance = CustomForm(data={'string': 1})
-
-        with self.assertRaises(exceptions.ValidationError) as context:
-            yield instance.validate()
-
-        self.assertIn('string', context.exception.error)
-
-    @tornado.testing.gen_test
-    def test__read_only(self):
-
-        class CustomForm(forms.Form):
-            __collection__ = 'test'
-
-            string = fields.String(read_only=True)
-
-        instance = CustomForm(data={'string': '1'})
-
-        with self.assertRaises(exceptions.ValidationError) as context:
-            yield instance.validate()
-
-        self.assertEqual(
-            instance.__fields__['string'].error_messages['read_only'],
-            context.exception.error['string']
-        )
-
-    @tornado.testing.gen_test
-    def test_get_metadata(self):
-        class CustomForm(forms.Form):
-            __collection__ = 'test'
-
-            string = fields.String(
-                label='Label', help_text='Help', default='default'
-            )
-
-        instance = CustomForm(data={'string': 1})
-
-        self.assertEqual([{
-            'name': 'string',
-            'label': 'Label',
-            'help_text': 'Help',
-            'required': True,
-            'read_only': False,
-            'default': 'default',
-            'widget': {
-                'attrs': {'type': 'text'},
-                'tag': 'input',
-            }
-        }], (yield instance.get_metadata()))
-
-    @tornado.testing.gen_test
-    def test_serialize(self):
-        class CustomForm(forms.Form):
-            __collection__ = 'test'
-
-            string = fields.String(
-                label='Label', help_text='Help', default='default'
-            )
-
-        instance = CustomForm(data={'string': '1'})
-
-        self.assertEqual({'string': '1'}, (yield instance.serialize()))
-
-    @tornado.testing.gen_test
-    def test_save(self):
-        class CustomForm(forms.Form):
-            __collection__ = 'test'
-
-            string = fields.String(
-                label='Label', help_text='Help', default='default'
-            )
-
-        CustomForm(data={'string': '1'}).save()
 
 
 class BooleanTest(monstro.testing.AsyncTestCase):
@@ -880,57 +725,3 @@ class TimeTest(monstro.testing.AsyncTestCase):
         self.assertEqual(
             '00-00-00', (yield field.to_representation(datetime.time()))
         )
-
-
-class WidgetTest(unittest.TestCase):
-
-    def test_get_metadata(self):
-        widget = widgets.Widget('test', attributes={'key': 'value'})
-
-        self.assertEqual({
-            'tag': 'test',
-            'attrs': {'key': 'value'},
-        }, widget.get_metadata())
-
-
-class InputTest(unittest.TestCase):
-
-    def test_get_metadata(self):
-        widget = widgets.Input('hidden', attributes={'key': 'value'})
-
-        self.assertEqual({
-            'tag': 'input',
-            'attrs': {'key': 'value', 'type': 'hidden'},
-        }, widget.get_metadata())
-
-
-class TextAreaTest(unittest.TestCase):
-
-    def test_get_metadata(self):
-        widget = widgets.TextArea(attributes={'key': 'value'})
-
-        self.assertEqual({
-            'tag': 'textarea',
-            'attrs': {'key': 'value'},
-        }, widget.get_metadata())
-
-
-class SelectTest(unittest.TestCase):
-
-    def test_get_metadata(self):
-        choice = Choices(
-            ('A', 'a', 'A'),
-            ('B', 'b', 'B')
-        )
-        widget = widgets.Select(
-            choices=choice.choices, attributes={'key': 'value'}
-        )
-
-        self.assertEqual({
-            'tag': 'select',
-            'attrs': {'key': 'value'},
-            'options': [
-                {'label': 'A', 'value': 'a'},
-                {'label': 'B', 'value': 'b'}
-            ],
-        }, widget.get_metadata())
