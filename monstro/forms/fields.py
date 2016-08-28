@@ -462,13 +462,17 @@ class DateTime(Field):
         if self.auto_now_on_create and self.default is None:
             self.default = datetime.datetime.now
 
+    @property
+    def available_formats(self):
+        return list(set(self.input_formats + [self.output_format]))
+
     @tornado.gen.coroutine
     def to_internal_value(self, value):
         if self.auto_now:
             value = datetime.datetime.now()
 
         if isinstance(value, str):
-            for input_format in (self.input_formats + [self.output_format]):
+            for input_format in self.available_formats:
                 try:
                     value = datetime.datetime.strptime(value, input_format)
                     break
@@ -481,10 +485,11 @@ class DateTime(Field):
 
     @tornado.gen.coroutine
     def to_python(self, value):
-        try:
-            return datetime.datetime.strptime(value, self.output_format)
-        except ValueError:
-            return None
+        for input_format in self.available_formats:
+            try:
+                return datetime.datetime.strptime(value, input_format)
+            except ValueError:
+                continue
 
     @tornado.gen.coroutine
     def is_valid(self, value):
@@ -492,7 +497,7 @@ class DateTime(Field):
             return
 
         if isinstance(value, str):
-            for input_format in (self.input_formats + [self.output_format]):
+            for input_format in self.available_formats:
                 try:
                     datetime.datetime.strptime(value, input_format)
                     break
