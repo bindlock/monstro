@@ -356,6 +356,42 @@ class ArrayTest(monstro.testing.AsyncTestCase):
             )
         )
 
+    @tornado.testing.gen_test
+    def test_to_python(self):
+        field = fields.Array()
+
+        self.assertEqual([], (yield field.to_python([])))
+
+    @tornado.testing.gen_test
+    def test_to_python__with_field(self):
+        field = fields.Array(field=fields.Integer())
+
+        self.assertEqual([1], (yield field.to_python(['1'])))
+
+    @tornado.testing.gen_test
+    def test_to_python__invalid(self):
+        field = fields.Array()
+
+        self.assertEqual(None, (yield field.to_python('wrong')))
+
+    @tornado.testing.gen_test
+    def test_to_representation(self):
+        field = fields.Array()
+
+        self.assertEqual([], (yield field.to_representation([])))
+
+    @tornado.testing.gen_test
+    def test_to_representation__with_field(self):
+        field = fields.Array(field=fields.Integer())
+
+        self.assertEqual([1], (yield field.to_representation(['1'])))
+
+    @tornado.testing.gen_test
+    def test_to_representation__invalid(self):
+        field = fields.Array()
+
+        self.assertEqual(None, (yield field.to_representation('wrong')))
+
 
 class UrlTest(monstro.testing.AsyncTestCase):
 

@@ -198,6 +198,14 @@ class Numeric(Type):
             return None
 
     @tornado.gen.coroutine
+    def to_python(self, value):
+        return (yield self.to_internal_value(value))
+
+    @tornado.gen.coroutine
+    def to_representation(self, value):
+        return (yield self.to_internal_value(value))
+
+    @tornado.gen.coroutine
     def is_valid(self, value):
         value = yield self.to_internal_value(value)
 
@@ -276,6 +284,40 @@ class Array(Type):
 
             for item in value:
                 values.append((yield self.field.to_internal_value(item)))
+
+            return values
+
+        return value
+
+    @tornado.gen.coroutine
+    def to_python(self, value):
+        try:
+            yield self.is_valid(value)
+        except ValidationError:
+            return None
+
+        if self.field:
+            values = []
+
+            for item in value:
+                values.append((yield self.field.to_python(item)))
+
+            return values
+
+        return value
+
+    @tornado.gen.coroutine
+    def to_representation(self, value):
+        try:
+            yield self.is_valid(value)
+        except ValidationError:
+            return None
+
+        if self.field:
+            values = []
+
+            for item in value:
+                values.append((yield self.field.to_representation(item)))
 
             return values
 
@@ -426,7 +468,7 @@ class DateTime(Field):
             value = datetime.datetime.now()
 
         if isinstance(value, str):
-            for input_format in self.input_formats:
+            for input_format in (self.input_formats + [self.output_format]):
                 try:
                     value = datetime.datetime.strptime(value, input_format)
                     break
@@ -435,12 +477,12 @@ class DateTime(Field):
             else:
                 return None
 
-        return value.strftime(self.default_format)
+        return value.strftime(self.output_format)
 
     @tornado.gen.coroutine
     def to_python(self, value):
         try:
-            return datetime.datetime.strptime(value, self.default_format)
+            return datetime.datetime.strptime(value, self.output_format)
         except ValueError:
             return None
 
@@ -450,7 +492,7 @@ class DateTime(Field):
             return
 
         if isinstance(value, str):
-            for input_format in self.input_formats:
+            for input_format in (self.input_formats + [self.output_format]):
                 try:
                     datetime.datetime.strptime(value, input_format)
                     break
