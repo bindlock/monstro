@@ -111,17 +111,25 @@ class Field(object):
 
     @tornado.gen.coroutine
     def get_metadata(self):
-        raise tornado.gen.Return({
+        metadata = {
             'name': self.name,
             'label': self.label or (self.name and self.name.title()),
             'help_text': self.help_text,
             'required': self.required,
             'read_only': self.read_only,
-            'default': self.default and not callable(self.default) and (
-                yield self.to_internal_value(self.default)
-            ),
-            'widget': self.widget and self.widget.get_metadata()
-        })
+        }
+
+        if not (self.default is None or callable(self.default)):
+            metadata['default'] = yield self.to_internal_value(self.default)
+        else:
+            metadata['default'] = None
+
+        if self.widget:
+            metadata['widget'] = self.widget.get_metadata()
+        else:
+            metadata['widget'] = None
+
+        return metadata
 
 
 class Type(Field):
@@ -459,7 +467,10 @@ class DateTime(Field):
         self.auto_now = auto_now
         self.auto_now_on_create = auto_now_on_create
 
-        if self.auto_now_on_create and self.default is None:
+        if self.auto_now or self.auto_now_on_create or self.default:
+            self.required = False
+
+        if (self.auto_now_on_create or self.auto_now) and self.default is None:
             self.default = datetime.datetime.now
 
     @property

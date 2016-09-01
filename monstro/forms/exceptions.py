@@ -20,4 +20,4 @@ class ValidationError(SerializerError):
         if self.field:
             return '{} - {}'.format(self.field, self.error.lower())
 
-        return self.error
+        return str(self.error)

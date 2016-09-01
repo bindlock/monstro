@@ -82,7 +82,6 @@ class Model(Form, metaclass=MetaModel):
     @tornado.gen.coroutine
     def delete(self):
         if self._id:
-            print(self._id)
             yield self.__cursor__.remove({'_id': self._id})
 
     def __str__(self):

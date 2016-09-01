@@ -583,10 +583,11 @@ class DateTimeTest(monstro.testing.AsyncTestCase):
         self.assertEqual(None, (yield field.to_internal_value('wrong')))
 
     @tornado.testing.gen_test
-    def test_to_internal_value__auto_now(self):
+    def test_validate__auto_now(self):
         field = fields.DateTime(auto_now=True)
 
-        self.assertTrue((yield field.to_internal_value(None)))
+        self.assertTrue(field.auto_now)
+        self.assertTrue((yield field.validate(None)))
 
     @tornado.testing.gen_test
     def test_to_python(self):
