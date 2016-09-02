@@ -499,7 +499,7 @@ class DateTime(Field):
         for input_format in self.available_formats:
             try:
                 return datetime.datetime.strptime(value, input_format)
-            except ValueError:
+            except (TypeError, ValueError):
                 continue
 
     @tornado.gen.coroutine

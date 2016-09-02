@@ -536,7 +536,7 @@ class DateTimeTest(monstro.testing.AsyncTestCase):
         field = fields.DateTime(auto_now_on_create=True)
 
         self.assertTrue(field.default)
-        self.assertTrue((yield field.validate(None)))
+        self.assertIsInstance((yield field.validate(None)), str)
 
     @tornado.testing.gen_test
     def test_is_valid(self):
