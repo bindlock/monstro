@@ -1,12 +1,15 @@
 # coding=utf-8
 
-import copy
+import logging
 import collections
 
 import tornado.gen
 
 from . import exceptions
 from .fields import Field
+
+
+logger = logging.getLogger('monstro')
 
 
 class MetaForm(type):
@@ -43,6 +46,7 @@ class MetaForm(type):
 class Form(object, metaclass=MetaForm):
 
     def __init__(self, *, instance=None, data=None):
+        self.__valid__ = True
         self.__instance__ = instance
         self.__values__ = {name: None for name in self.__fields__.keys()}
 
@@ -53,6 +57,8 @@ class Form(object, metaclass=MetaForm):
         if data is not None:
             for name in self.__fields__.keys():
                 self.__values__[name] = data.get(name, self.__values__[name])
+
+            self.__valid__ = False
 
     def __getattr__(self, attribute):
         if attribute in self.__fields__:
@@ -67,16 +73,6 @@ class Form(object, metaclass=MetaForm):
         else:
             return super().__setattr__(attribute, value)
 
-    @tornado.gen.coroutine
-    def to_internal_value(self):
-        data = {}
-
-        for name, field in self.__fields__.items():
-            value = self.__values__.get(name, field.default)
-            data[name] = yield field.to_internal_value(value)
-
-        return data
-
     @classmethod
     @tornado.gen.coroutine
     def get_metadata(cls):
@@ -88,41 +84,65 @@ class Form(object, metaclass=MetaForm):
         return metadata
 
     @tornado.gen.coroutine
-    def serialize(self):
-        data = {}
-
+    def to_python(self):
         for name, field in self.__fields__.items():
-            value = self.__values__.get(name, field.default)
-            data[name] = yield field.to_representation(value)
+            value = self.__values__.get(name)
 
-        return data
+            try:
+                self.__values__[name] = yield field.to_python(value)
+            except exceptions.ValidationError:
+                self.__values__[name] = field.default
 
-    @tornado.gen.coroutine
-    def construct(self):
-        for name, field in self.__fields__.items():
-            value = self.__values__.get(name, field.default)
-            self.__values__[name] = yield field.to_python(value)
+                logger.warning(
+                    'Value type {} don\'t match with field {}'.format(
+                        value, field.__class__
+                    )
+                )
+
+        self.__valid__ = True
+
+        return self
 
     @tornado.gen.coroutine
     def validate(self):
-        errors = {}
+        self.__errors__ = {}
 
         for name, field in self.__fields__.items():
-            try:
-                value = self.__values__.get(name, field.default)
+            value = self.__values__.get(name)
 
-                if field.read_only and value != field.default:
-                    if not self.__instance__:
+            try:
+                if field.read_only and not self.__instance__:
+                    if not (value is None or value == field.default):
                         field.fail('read_only')
 
                 self.__values__[name] = yield field.validate(value, self)
             except exceptions.ValidationError as e:
-                errors[name] = e.error
+                self.__errors__[name] = e.error
 
-        if errors:
-            raise exceptions.ValidationError(errors)
+        if self.__errors__:
+            raise exceptions.ValidationError(self.__errors__)
 
-        return copy.copy(self.__values__)
+        self.__valid__ = True
+
+        return self
+
+    @tornado.gen.coroutine
+    def serialize(self):
+        assert self.__valid__, (
+            'You cannot call .serialize() before call .validate()'
+        )
+
+        data = {}
+
+        for name, field in self.__fields__.items():
+            value = self.__values__.get(name)
+
+            if value is not None:
+                data[name] = yield field.to_internal_value(value)
+            else:
+                data[name] = None
+
+        return data
 
     @tornado.gen.coroutine
     def save(self):

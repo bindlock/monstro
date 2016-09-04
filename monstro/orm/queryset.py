@@ -17,12 +17,11 @@ class QuerySet(object):
         return getattr(self.cursor, attribute)
 
     @tornado.gen.coroutine
-    def construct(self, items):
+    def to_python(self, items):
         constructed = []
 
         for item in items:
-            instance = self.model(data=item)
-            yield instance.construct()
+            instance = yield self.model(data=item).to_python()
             constructed.append(instance)
 
         return constructed
@@ -31,7 +30,7 @@ class QuerySet(object):
     def next(self):
         if (yield self.cursor.fetch_next):
             item = self.cursor.next_object()
-            instance = (yield self.construct([item]))[0]
+            instance = (yield self.to_python([item]))[0]
 
             return instance
 
@@ -46,6 +45,9 @@ class QuerySet(object):
     @tornado.gen.coroutine
     def get(self, **query):
         for key, value in query.items():
+            if key == '_id':
+                continue
+
             query[key] = (
                 yield self.model.__fields__[key].to_internal_value(value)
             )
@@ -58,8 +60,7 @@ class QuerySet(object):
         if not data:
             raise self.model.DoesNotExist()
 
-        instance = self.model(data=data)
-        yield instance.construct()
+        instance = yield self.model(data=data).to_python()
 
         return instance
 
@@ -77,7 +78,7 @@ class QuerySet(object):
     def all(self, length=None):
         if length:
             items = yield self.cursor.to_list(length)
-            self.items = yield self.construct(items)
+            self.items = yield self.to_python(items)
             return self.items
 
         while True:

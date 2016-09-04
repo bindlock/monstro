@@ -7,10 +7,10 @@ from bson.objectid import ObjectId
 import bson.errors
 
 from monstro.forms import widgets
-from monstro.forms.fields import String, Field
+from monstro.forms.fields import Field
 
 
-class Id(String):
+class Id(Field):
 
     widget = widgets.Input('hidden')
     default_error_messages = {
@@ -22,26 +22,20 @@ class Id(String):
         super().__init__(**kwargs)
 
     @tornado.gen.coroutine
-    def is_valid(self, value):
+    def to_python(self, value):
         if isinstance(value, str):
-            try:
-                ObjectId(value)
-            except bson.errors.InvalidId:
-                self.fail('invalid')
-
-    @tornado.gen.coroutine
-    def to_internal_value(self, value):
-        if value is not None:
             try:
                 return ObjectId(value)
             except bson.errors.InvalidId:
-                return None
+                self.fail('invalid')
+        elif not isinstance(value, ObjectId):
+            self.fail('invalid')
 
-        return None
+        return value
 
     @tornado.gen.coroutine
-    def to_python(self, value):
-        return (yield self.to_internal_value(value))
+    def to_internal_value(self, value):
+        return str(value)
 
 
 class ForeignKey(Field):
@@ -70,26 +64,6 @@ class ForeignKey(Field):
     def to_python(self, value):
         related_model = self.get_related_model()
 
-        if isinstance(value, str) or isinstance(value, ObjectId):
-            if self.related_field == '_id' and isinstance(value, str):
-                try:
-                    value = ObjectId(value)
-                except bson.errors.InvalidId:
-                    return None
-
-            query = {self.related_field: value}
-
-            try:
-                value = yield related_model.objects.get(**query)
-            except self.related_model.DoesNotExist:
-                return None
-
-        return value
-
-    @tornado.gen.coroutine
-    def is_valid(self, value):
-        related_model = self.get_related_model()
-
         if not (isinstance(value, str) or isinstance(value, ObjectId)):
             if not isinstance(value, related_model):
                 self.fail('invalid')
@@ -107,23 +81,12 @@ class ForeignKey(Field):
 
     @tornado.gen.coroutine
     def to_internal_value(self, value):
-        related_model = self.get_related_model()
-
-        if not value or isinstance(value, str):
-            return value
-        elif not isinstance(value, related_model):
-            return None
-
         value = getattr(value, self.related_field)
 
         if self.related_field == '_id':
             return str(value)
 
         return value
-
-    @tornado.gen.coroutine
-    def to_representation(self, value):
-        return (yield self.to_internal_value(value))
 
     @tornado.gen.coroutine
     def get_metadata(self):

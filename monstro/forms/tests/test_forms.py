@@ -9,102 +9,101 @@ import monstro.testing
 from monstro.forms import fields, forms, exceptions
 
 
+class TestForm(forms.Form):
+
+    __collection__ = 'test'
+
+    string = fields.String(
+        label='Label', help_text='Help', default='default', read_only=True
+    )
+    number = fields.Integer()
+
+
 class FormTest(monstro.testing.AsyncTestCase):
 
     def test_init__with_data(self):
-        instance = forms.Form(data={'name': 'test'})
+        instance = TestForm(data={'name': 'test'})
 
-        self.assertEqual({}, instance.__values__)
+        self.assertEqual({'string': None, 'number': None}, instance.__values__)
 
     def test_init__with_instance(self):
-        class CustomForm(forms.Form):
+        instance = TestForm(instance=type('Object', (object,), {'number': 1}))
 
-            name = fields.String()
-
-        class Instance(object):
-
-            name = 'test'
-
-        instance = CustomForm(instance=Instance)
-
-        self.assertEqual(instance.__values__['name'], 'test')
+        self.assertEqual(instance.__values__['number'], 1)
 
     def test_new(self):
-        class CustomForm(forms.Form):
-
-            name = fields.String()
-
-        self.assertIn('name', CustomForm.__fields__)
+        self.assertIsInstance(TestForm.__fields__['string'], fields.String)
+        self.assertIsInstance(TestForm.__fields__['number'], fields.Integer)
 
     def test_set_value(self):
-        class CustomForm(forms.Form):
+        instance = TestForm()
+        instance.string = 'test'
 
-            name = fields.String()
-
-        instance = CustomForm(data={'name': ''})
-        instance.name = 'test'
-
-        self.assertEqual(instance.name, 'test')
+        self.assertEqual(instance.string, 'test')
 
     @tornado.testing.gen_test
     def test_getattr__attribute_error(self):
-        class CustomForm(forms.Form):
-
-            name = fields.String()
-
-        instance = CustomForm(data={'name': 'test'})
-
         with self.assertRaises(AttributeError):
-            instance.none()
-
-    @tornado.testing.gen_test
-    def test_construct(self):
-        class CustomForm(forms.Form):
-
-            map = fields.Map()
-
-        instance = CustomForm(data={'map': '{"name": "test"}'})
-
-        yield instance.construct()
-
-        self.assertEqual(instance.map['name'], 'test')
+            TestForm().none()
 
     @tornado.testing.gen_test
     def test_validate(self):
-        class CustomForm(forms.Form):
-            __collection__ = 'test'
+        instance = TestForm(data={'number': '1'})
 
-            string = fields.String()
+        yield instance.validate()
 
-        instance = CustomForm(data={'string': 'test'})
-
-        data = yield instance.validate()
-
-        self.assertEqual(data['string'], 'test')
+        self.assertEqual(instance.number, 1)
 
     @tornado.testing.gen_test
     def test_validate__error(self):
-        class CustomForm(forms.Form):
-            __collection__ = 'test'
-
-            string = fields.String()
-
-        instance = CustomForm(data={'string': 1})
+        instance = TestForm(data={'string': 1})
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield instance.validate()
 
         self.assertIn('string', context.exception.error)
+        self.assertIn('string', instance.__errors__)
+
+    @tornado.testing.gen_test
+    def test_get_metadata(self):
+        instance = TestForm()
+
+        self.assertEqual(
+            {
+                'name': 'string',
+                'label': 'Label',
+                'help_text': 'Help',
+                'required': False,
+                'read_only': True,
+                'default': 'default',
+                'widget': {
+                    'attrs': {'type': 'text'},
+                    'tag': 'input',
+                }
+            }, (yield instance.get_metadata())[0]
+        )
+
+    @tornado.testing.gen_test
+    def test_serialize(self):
+        instance = yield TestForm(data={'number': '1'}).to_python()
+
+        self.assertEqual(
+            {'number': 1, 'string': 'default'}, (yield instance.serialize())
+        )
+
+    @tornado.testing.gen_test
+    def test_save(self):
+        yield TestForm(data={'string': '1'}).save()
+
+    @tornado.testing.gen_test
+    def test_to_python(self):
+        instance = yield TestForm(data={'number': '1'}).to_python()
+
+        self.assertEqual(1, instance.number)
 
     @tornado.testing.gen_test
     def test__read_only(self):
-
-        class CustomForm(forms.Form):
-            __collection__ = 'test'
-
-            string = fields.String(read_only=True)
-
-        instance = CustomForm(data={'string': '1'})
+        instance = TestForm(data={'string': '1'})
 
         with self.assertRaises(exceptions.ValidationError) as context:
             yield instance.validate()
@@ -113,51 +112,3 @@ class FormTest(monstro.testing.AsyncTestCase):
             instance.__fields__['string'].error_messages['read_only'],
             context.exception.error['string']
         )
-
-    @tornado.testing.gen_test
-    def test_get_metadata(self):
-        class CustomForm(forms.Form):
-            __collection__ = 'test'
-
-            string = fields.String(
-                label='Label', help_text='Help', default='default'
-            )
-
-        instance = CustomForm(data={'string': 1})
-
-        self.assertEqual([{
-            'name': 'string',
-            'label': 'Label',
-            'help_text': 'Help',
-            'required': True,
-            'read_only': False,
-            'default': 'default',
-            'widget': {
-                'attrs': {'type': 'text'},
-                'tag': 'input',
-            }
-        }], (yield instance.get_metadata()))
-
-    @tornado.testing.gen_test
-    def test_serialize(self):
-        class CustomForm(forms.Form):
-            __collection__ = 'test'
-
-            string = fields.String(
-                label='Label', help_text='Help', default='default'
-            )
-
-        instance = CustomForm(data={'string': '1'})
-
-        self.assertEqual({'string': '1'}, (yield instance.serialize()))
-
-    @tornado.testing.gen_test
-    def test_save(self):
-        class CustomForm(forms.Form):
-            __collection__ = 'test'
-
-            string = fields.String(
-                label='Label', help_text='Help', default='default'
-            )
-
-        CustomForm(data={'string': '1'}).save()

@@ -54,6 +54,7 @@ class PaginationTest(monstro.testing.AsyncTestCase):
     def test_serialize__serializer(self):
         pagination = Pagination(self.TestModel)
         instance = self.TestModel(data={'value': 'test'})
+        instance.__valid__ = True
 
         self.assertEqual(
             {'value': 'test', '_id': None},
@@ -64,6 +65,7 @@ class PaginationTest(monstro.testing.AsyncTestCase):
     def test_serialize__other_serializer(self):
         pagination = Pagination(self.TestModel)
         instance = User(data={'value': 'test'})
+        instance.__valid__ = True
 
         self.assertEqual(
             {'value': 'test', '_id': None},

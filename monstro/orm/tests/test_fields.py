@@ -42,28 +42,15 @@ class IdTest(monstro.testing.AsyncTestCase):
         yield field.validate()
 
     @tornado.testing.gen_test
-    def test_is_valid__from_string(self):
-        field = Id()
-
-        yield field.is_valid(str(ObjectId()))
-
-    @tornado.testing.gen_test
-    def test_is_valid__from_string_error(self):
+    def test_to_python__wrong_object(self):
         field = Id()
 
         with self.assertRaises(ValidationError) as context:
-            yield field.is_valid('blackjack')
+            self.assertEqual('wrong', (yield field.to_python(object)))
 
         self.assertEqual(
-            context.exception.error,
-            Id.default_error_messages['invalid']
+            context.exception.error, Id.default_error_messages['invalid']
         )
-
-    @tornado.testing.gen_test
-    def test_to_internal_value__from_string_error(self):
-        field = Id()
-
-        self.assertEqual(None, (yield field.to_internal_value('wrong')))
 
     @tornado.testing.gen_test
     def test_validate__error(self):
@@ -73,8 +60,7 @@ class IdTest(monstro.testing.AsyncTestCase):
             yield field.validate()
 
         self.assertEqual(
-            context.exception.error,
-            Id.default_error_messages['invalid']
+            context.exception.error, Id.default_error_messages['invalid']
         )
 
 
@@ -126,21 +112,9 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
     @tornado.testing.gen_test
     def test_to_python__from_string_id(self):
         field = ForeignKey(related_model=self.model)
-        value = yield field.to_python(str(self.instance._id))
+        value = yield field.to_python(self.instance._id)
 
         self.assertEqual(value.name, self.instance.name)
-
-    @tornado.testing.gen_test
-    def test_to_python__from_string_id_error(self):
-        field = ForeignKey(related_model=self.model)
-
-        self.assertEqual(None, (yield field.to_python('blackjack')))
-
-    @tornado.testing.gen_test
-    def test_to_python__does_not_exist(self):
-        field = ForeignKey(related_model=self.model, related_field='name')
-
-        self.assertEqual(None, (yield field.to_python('blackjack')))
 
     @tornado.testing.gen_test
     def test_validate(self):
@@ -153,35 +127,12 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
         self.assertIsInstance(self.instance, self.model)
 
     @tornado.testing.gen_test
-    def test_is_valid(self):
-        field = ForeignKey(
-            related_model=self.model, related_field='name'
-        )
-        yield field.is_valid(self.instance)
-
-        self.assertIsInstance(self.instance, self.model)
-
-    @tornado.testing.gen_test
     def test_to_internal_value__id(self):
         field = ForeignKey(related_model=self.model)
 
         value = yield field.to_internal_value(self.instance)
 
         self.assertEqual(str(self.instance._id), value)
-
-    @tornado.testing.gen_test
-    def test_to_representation(self):
-        field = ForeignKey(related_model=self.model)
-
-        value = yield field.to_representation(self.instance)
-
-        self.assertEqual(str(self.instance._id), value)
-
-    @tornado.testing.gen_test
-    def test_to_internal_value__invalid(self):
-        field = ForeignKey(related_model=self.model)
-
-        self.assertEqual(None, (yield field.to_internal_value(field)))
 
     @tornado.testing.gen_test
     def test_validate__from_key(self):
@@ -216,20 +167,6 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
 
         with self.assertRaises(ValidationError) as context:
             yield field.validate()
-
-        self.assertEqual(
-            context.exception.error,
-            ForeignKey.default_error_messages['invalid'].format(field)
-        )
-
-    @tornado.testing.gen_test
-    def test_is_valid__error_wrong_model(self):
-        field = ForeignKey(
-            related_model=self.model, related_field='name'
-        )
-
-        with self.assertRaises(ValidationError) as context:
-            yield field.is_valid(fields.String())
 
         self.assertEqual(
             context.exception.error,

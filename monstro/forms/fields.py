@@ -6,6 +6,7 @@ import urllib.parse
 import datetime
 
 import tornado.gen
+import tornado.concurrent
 
 from . import widgets
 from .exceptions import ValidationError
@@ -18,7 +19,7 @@ class Field(object):
         'required': 'Value is required',
         'invalid': 'Value is invalid',
         'unique': 'Value must be unique',
-        'read_only': 'Read-only value'
+        'read_only': 'Read-only field'
     }
 
     def __init__(self, *, name=None, required=True, default=None, label=None,
@@ -38,13 +39,16 @@ class Field(object):
         """
         self.name = name
         self.required = required
-        self.default = default
+        self._default = default
         self.label = label
         self.unique = unique
         self.help_text = help_text
         self.read_only = read_only
         self.validators = validators or []
         self.widget = widget or self.widget
+
+        if self._default is not None:
+            self.required = False
 
         messages = {}
 
@@ -61,10 +65,7 @@ class Field(object):
     @tornado.gen.coroutine
     def validate(self, value=None, model=None):
         if value is None:
-            if callable(self.default):
-                value = self.default()
-            else:
-                value = self.default
+            value = self.default
 
         if value is None:
             if self.required:
@@ -72,10 +73,10 @@ class Field(object):
             else:
                 return None
 
-        yield self.is_valid(value)
+        value = yield self.to_python(value)
 
         for validator in self.validators:
-            yield validator(value)
+            value = yield validator(value)
 
         if self.unique and hasattr(self, 'model'):
             try:
@@ -86,20 +87,24 @@ class Field(object):
             if instance and model and instance._id != model._id:
                 self.fail('unique')
 
-        return (yield self.to_internal_value(value))
+        return value
 
     def fail(self, error_code, **kwargs):
         raise ValidationError(
             self.error_messages[error_code].format(self, **kwargs), self.name
         )
 
-    @tornado.gen.coroutine
-    def is_valid(self, value):
-        raise NotImplementedError()
+    @property
+    def default(self):
+        if callable(self._default):
+            value = self._default()
 
-    @tornado.gen.coroutine
-    def to_representation(self, value):
-        return value
+            if isinstance(value, tornado.concurrent.Future):
+                value = value.result()
+
+            return value
+
+        return self._default
 
     @tornado.gen.coroutine
     def to_python(self, value):
@@ -119,8 +124,8 @@ class Field(object):
             'read_only': self.read_only,
         }
 
-        if not (self.default is None or callable(self.default)):
-            metadata['default'] = yield self.to_internal_value(self.default)
+        if not (self._default is None or callable(self._default)):
+            metadata['default'] = yield self.to_internal_value(self._default)
         else:
             metadata['default'] = None
 
@@ -141,9 +146,11 @@ class Type(Field):
     }
 
     @tornado.gen.coroutine
-    def is_valid(self, value):
+    def to_python(self, value):
         if not isinstance(value, self.type):
             self.fail('invalid')
+
+        return value
 
 
 class Boolean(Type):
@@ -170,8 +177,8 @@ class String(Type):
         super().__init__(**kwargs)
 
     @tornado.gen.coroutine
-    def is_valid(self, value):
-        yield super().is_valid(value)
+    def to_python(self, value):
+        value = yield super().to_python(value)
 
         if self.min_length is not None and len(value) < self.min_length:
             self.fail('min_length')
@@ -179,10 +186,7 @@ class String(Type):
         if self.max_length is not None and len(value) > self.max_length:
             self.fail('max_length')
 
-    @tornado.gen.coroutine
-    def to_internal_value(self, value):
-        if value is not None:
-            return str(value)
+        return value
 
 
 class Numeric(Type):
@@ -199,25 +203,10 @@ class Numeric(Type):
         super().__init__(**kwargs)
 
     @tornado.gen.coroutine
-    def to_internal_value(self, value):
-        try:
-            return self.type(value)
-        except (TypeError, ValueError):
-            return None
-
-    @tornado.gen.coroutine
     def to_python(self, value):
-        return (yield self.to_internal_value(value))
-
-    @tornado.gen.coroutine
-    def to_representation(self, value):
-        return (yield self.to_internal_value(value))
-
-    @tornado.gen.coroutine
-    def is_valid(self, value):
-        value = yield self.to_internal_value(value)
-
-        if value is None:
+        try:
+            value = self.type(value)
+        except (TypeError, ValueError):
             self.fail('invalid')
 
         if self.min_value is not None and value < self.min_value:
@@ -225,6 +214,8 @@ class Numeric(Type):
 
         if self.max_value is not None and value > self.max_value:
             self.fail('max_value')
+
+        return value
 
 
 class Integer(Numeric):
@@ -260,11 +251,13 @@ class Choice(Field):
         super().__init__(**kwargs)
 
     @tornado.gen.coroutine
-    def is_valid(self, value):
+    def to_python(self, value):
         choices = [choice[0] for choice in self.choices]
 
         if value not in choices:
             self.fail('invalid', choices=choices)
+
+        return value
 
 
 class Array(Type):
@@ -281,12 +274,24 @@ class Array(Type):
         super().__init__(**kwargs)
 
     @tornado.gen.coroutine
-    def to_internal_value(self, value):
-        try:
-            yield self.is_valid(value)
-        except ValidationError:
-            return None
+    def to_python(self, value):
+        value = yield super().to_python(value)
 
+        if self.field:
+            values = []
+
+            for index, item in enumerate(value):
+                try:
+                    values.append((yield self.field.to_python(item)))
+                except ValidationError as e:
+                    self.fail('child', index=index, message=e.error)
+
+            return values
+
+        return value
+
+    @tornado.gen.coroutine
+    def to_internal_value(self, value):
         if self.field:
             values = []
 
@@ -296,51 +301,6 @@ class Array(Type):
             return values
 
         return value
-
-    @tornado.gen.coroutine
-    def to_python(self, value):
-        try:
-            yield self.is_valid(value)
-        except ValidationError:
-            return None
-
-        if self.field:
-            values = []
-
-            for item in value:
-                values.append((yield self.field.to_python(item)))
-
-            return values
-
-        return value
-
-    @tornado.gen.coroutine
-    def to_representation(self, value):
-        try:
-            yield self.is_valid(value)
-        except ValidationError:
-            return None
-
-        if self.field:
-            values = []
-
-            for item in value:
-                values.append((yield self.field.to_representation(item)))
-
-            return values
-
-        return value
-
-    @tornado.gen.coroutine
-    def is_valid(self, value):
-        yield super().is_valid(value)
-
-        if self.field:
-            for index, item in enumerate(value):
-                try:
-                    yield self.field.validate(item)
-                except ValidationError as e:
-                    self.fail('child', index=index, message=e.error)
 
 
 class MultipleChoice(Array, Choice):
@@ -356,13 +316,15 @@ class MultipleChoice(Array, Choice):
         self.widget.attributes['multiple'] = True
 
     @tornado.gen.coroutine
-    def is_valid(self, value):
-        yield Array.is_valid(self, value)
+    def to_python(self, value):
+        value = yield Array.to_python(self, value)
 
         choices = [choice[0] for choice in self.choices]
 
         if any(choice not in choices for choice in value):
             self.fail('choices', choices=choices)
+
+        return value
 
 
 class Url(String):
@@ -372,13 +334,15 @@ class Url(String):
     }
 
     @tornado.gen.coroutine
-    def is_valid(self, value):
-        yield super().is_valid(value)
+    def to_python(self, value):
+        value = yield super().to_python(value)
 
         url = urllib.parse.urlparse(value)
 
         if not (url.scheme and url.netloc):
             self.fail('url')
+
+        return value
 
 
 class RegexMatch(String):
@@ -392,11 +356,13 @@ class RegexMatch(String):
         super().__init__(**kwargs)
 
     @tornado.gen.coroutine
-    def is_valid(self, value):
-        yield super().is_valid(value)
+    def to_python(self, value):
+        value = yield super().to_python(value)
 
         if not self.pattern.match(value):
             self.fail('pattern')
+
+        return value
 
 
 class Host(RegexMatch):
@@ -429,32 +395,23 @@ class Map(Field):
     }
 
     @tornado.gen.coroutine
-    def to_internal_value(self, value):
+    def to_python(self, value):
         if isinstance(value, str):
             try:
                 value = json.loads(value)
             except (ValueError, TypeError):
-                return None
+                self.fail('invalid')
+        elif not isinstance(value, dict):
+            self.fail('invalid')
 
         return value
-
-    @tornado.gen.coroutine
-    def to_python(self, value):
-        return (yield self.to_internal_value(value))
-
-    @tornado.gen.coroutine
-    def is_valid(self, value):
-        value = yield self.to_internal_value(value)
-
-        if not isinstance(value, dict):
-            self.fail('invalid')
 
 
 class DateTime(Field):
 
     widget = widgets.Input('datetime')
     default_error_messages = {
-        'invalid': 'Datetime must be in next formats: {0.input_formats}'
+        'invalid': 'Datetime must be in next formats: {0.available_formats}'
     }
 
     default_format = '%Y-%m-%dT%H:%M:%S'
@@ -462,25 +419,27 @@ class DateTime(Field):
     def __init__(self, *, input_formats=None, output_format=None,
                  auto_now=False, auto_now_on_create=False, **kwargs):
         super().__init__(**kwargs)
-        self.input_formats = [self.default_format] + (input_formats or [])
-        self.output_format = output_format or self.default_format
+        self.input_formats = input_formats or []
+        self.output_format = output_format
         self.auto_now = auto_now
         self.auto_now_on_create = auto_now_on_create
 
-        if self.auto_now or self.auto_now_on_create or self.default:
+        if self.auto_now or self.auto_now_on_create:
             self.required = False
 
-        if (self.auto_now_on_create or self.auto_now) and self.default is None:
-            self.default = datetime.datetime.now
+        if self.auto_now_on_create or self.auto_now:
+            self._default = datetime.datetime.now
+
+        self.widget.attributes['format'] = self.output_format
 
     @property
     def available_formats(self):
-        return list(set(self.input_formats + [self.output_format]))
+        return list(set(self.input_formats + [self.default_format]))
 
     @tornado.gen.coroutine
-    def to_internal_value(self, value):
+    def to_python(self, value):
         if self.auto_now:
-            value = datetime.datetime.now()
+            return datetime.datetime.now()
 
         if isinstance(value, str):
             for input_format in self.available_formats:
@@ -490,70 +449,43 @@ class DateTime(Field):
                 except ValueError:
                     continue
             else:
-                return None
-
-        return value.strftime(self.output_format)
-
-    @tornado.gen.coroutine
-    def to_python(self, value):
-        for input_format in self.available_formats:
-            try:
-                return datetime.datetime.strptime(value, input_format)
-            except (TypeError, ValueError):
-                continue
-
-    @tornado.gen.coroutine
-    def is_valid(self, value):
-        if self.auto_now:
-            return
-
-        if isinstance(value, str):
-            for input_format in self.available_formats:
-                try:
-                    datetime.datetime.strptime(value, input_format)
-                    break
-                except ValueError:
-                    continue
-            else:
                 self.fail('invalid')
         elif not hasattr(value, 'strftime'):
             self.fail('invalid')
 
+        return value
+
     @tornado.gen.coroutine
-    def to_representation(self, value):
-        if value is not None:
-            return value.strftime(self.output_format)
+    def to_internal_value(self, value):
+        if self.auto_now:
+            return datetime.datetime.now()
+
+        return value.isoformat()
 
 
 class Date(DateTime):
 
     widget = widgets.Input('date')
     default_error_messages = {
-        'invalid': 'Date must be in next formats: {0.input_formats}'
+        'invalid': 'Date must be in next formats: {0.available_formats}'
     }
 
     default_format = '%Y-%m-%d'
 
     @tornado.gen.coroutine
     def to_python(self, value):
-        value = yield super().to_python(value)
-
-        if value:
-            return value.date()
+        return (yield super().to_python(value)).date()
 
 
 class Time(DateTime):
 
     widget = widgets.Input('time')
     default_error_messages = {
-        'invalid': 'Time must be in next formats: {0.input_formats}'
+        'invalid': 'Time must be in next formats: {0.available_formats}'
     }
 
     default_format = '%H:%M:%S'
 
     @tornado.gen.coroutine
     def to_python(self, value):
-        value = yield super().to_python(value)
-
-        if value:
-            return value.time()
+        return (yield super().to_python(value)).time()

@@ -43,23 +43,20 @@ class Model(Form, metaclass=MetaModel):
             self.__collection__ and db.get_database()[self.__collection__]
         )
 
-    @tornado.gen.coroutine
-    def serialize(self):
-        data = yield super().serialize()
-        data['_id'] = data['_id'] and str(data['_id'])
-        return data
+    def __str__(self):
+        return '{} object'.format(self.__class__.__name__)
 
     @tornado.gen.coroutine
     def save(self):
-        data = yield self.validate()
+        yield self.validate()
+
+        data = yield self.serialize()
         data.pop('_id')
 
         if self._id:
             yield self.__cursor__.update({'_id': self._id}, data)
         else:
             self.__values__['_id'] = yield self.__cursor__.insert(data)
-
-        yield self.construct()
 
         return self
 
@@ -68,7 +65,7 @@ class Model(Form, metaclass=MetaModel):
         for key, value in kwargs.items():
             self.__values__[key] = value
 
-        yield self.save()
+        return (yield self.save())
 
     @tornado.gen.coroutine
     def refresh(self):
@@ -77,12 +74,9 @@ class Model(Form, metaclass=MetaModel):
 
             self.__values__.update(data)
 
-            yield self.construct()
+            return (yield self.to_python())
 
     @tornado.gen.coroutine
     def delete(self):
         if self._id:
             yield self.__cursor__.remove({'_id': self._id})
-
-    def __str__(self):
-        return '{} object'.format(self.__class__.__name__)

@@ -46,7 +46,7 @@ class ModelTest(monstro.testing.AsyncTestCase):
     def test_new_init_with__id_field(self):
         with self.assertRaises(AttributeError):
 
-            class Test(model.Model):
+            class Test(model.Model):  # pylint: disable=W0612
                 __collection__ = 'test'
                 _id = fields.Integer()
 
@@ -63,16 +63,17 @@ class ModelTest(monstro.testing.AsyncTestCase):
             instance.none()
 
     @tornado.testing.gen_test
-    def test_to_internal_value(self):
+    def test_serialize(self):
         class CustomModel(model.Model):
             __collection__ = 'test'
 
             name = fields.String()
 
         instance = CustomModel(data={'name': 'test'})
+        instance.__valid__ = True
 
         self.assertEqual(
-            {'name': 'test', '_id': None}, (yield instance.to_internal_value())
+            {'name': 'test', '_id': None}, (yield instance.serialize())
         )
 
     @tornado.testing.gen_test
@@ -109,8 +110,9 @@ class ModelTest(monstro.testing.AsyncTestCase):
             string = fields.String()
 
         instance = yield CustomModel.objects.create(string=uuid.uuid4().hex)
+        print(type(instance._id))
 
-        _instance = yield instance.objects.get(_id=instance._id)
+        _instance = yield CustomModel.objects.get(_id=instance._id)
         yield _instance.update(string=uuid.uuid4().hex)
 
         self.assertEqual(instance._id, _instance._id)

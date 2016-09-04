@@ -51,6 +51,8 @@ class APIView(views.View):
     def prepare(self):
         yield super().prepare()
 
+        self.query = self.request.GET
+
         if self.request.body:
             try:
                 self.data = json.loads(self.request.body.decode('utf-8'))
@@ -58,19 +60,18 @@ class APIView(views.View):
                 return self.send_error(400, reason='Unable to parse JSON')
 
             if self.form_class:
-                form = self.form_class(data=self.data)
+                self.form = self.form_class(data=self.data)
 
                 try:
-                    self.data = yield form.validate()
-                except self.form_class.ValidationError as e:
+                    yield self.form.validate()
+                except self.form.ValidationError as e:
                     if isinstance(e.error, str):
                         return self.send_error(400, reason=e.error)
 
                     return self.send_error(400, details=e.error)
 
-            self.data.pop('_id', None)
-
-        self.query = self.request.GET
+                self.data = yield self.form.serialize()
+                self.data.pop('_id', None)
 
 
 class ListAPIView(mixins.ListResponseMixin, APIView):

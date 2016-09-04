@@ -16,7 +16,7 @@ def get_database(connection=None, database=None):
     if db and not (connection or database):
         return db
 
-    global db
+    global db  # pylint:disable=W0603
     connection = connection or get_motor_connection()
     db = connection[database or settings.mongodb_database]
 
