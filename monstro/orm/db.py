@@ -4,12 +4,15 @@ import motor.motor_tornado
 
 from monstro.conf import settings
 
+from . import utils
+
 
 db = None
 
 
 def get_motor_connection(**kwargs):
-    return motor.motor_tornado.MotorClient(settings.mongodb_uri, **kwargs)
+    client = motor.motor_tornado.MotorClient(settings.mongodb_uri, **kwargs)
+    return utils.MongoDBProxy(client)
 
 
 def get_database(connection=None, database=None):
