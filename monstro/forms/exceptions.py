@@ -3,12 +3,12 @@
 from monstro.core.exceptions import MonstroError
 
 
-class SerializerError(MonstroError):
+class FormError(MonstroError):
 
     pass
 
 
-class ValidationError(SerializerError):
+class ValidationError(FormError):
 
     def __init__(self, error=None, field=None):
         self.error = error
