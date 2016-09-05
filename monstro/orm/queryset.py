@@ -9,11 +9,15 @@ class QuerySet(object):
 
     def __init__(self, model):
         self.model = model
-        self.cursor = get_database()[self.model.__collection__].find()
+        self.cursor = None
         self.items = []
         self.query = {}
 
     def __getattr__(self, attribute):
+        if self.cursor is None:
+            collection = get_database()[self.model.__collection__]
+            self.cursor = collection.find(self.query)
+
         return getattr(self.cursor, attribute)
 
     @tornado.gen.coroutine
@@ -28,18 +32,14 @@ class QuerySet(object):
 
     @tornado.gen.coroutine
     def next(self):
-        if (yield self.cursor.fetch_next):
-            item = self.cursor.next_object()
+        if (yield self.fetch_next):
+            item = self.next_object()
             instance = (yield self.to_python([item]))[0]
 
             return instance
 
     def filter(self, **query):
         self.query.update(query)
-        cursor = get_database()[self.model.__collection__]
-
-        self.cursor = cursor.find(self.query)
-
         return self
 
     @tornado.gen.coroutine
@@ -48,9 +48,14 @@ class QuerySet(object):
             if key == '_id':
                 continue
 
-            query[key] = (
-                yield self.model.__fields__[key].to_internal_value(value)
-            )
+            try:
+                field = self.model.__fields__[key]
+                value = yield field.to_python(value)
+                value = yield field.to_internal_value(value)
+            except (KeyError, self.model.ValidationError):
+                pass
+
+            query[key] = value
 
         self.query.update(query)
         cursor = get_database()[self.model.__collection__]
@@ -66,18 +71,18 @@ class QuerySet(object):
 
     @tornado.gen.coroutine
     def first(self):
-        self.cursor.limit(1).sort('_id', 1)
+        self.limit(1).sort('_id', 1)
         return (yield self.next())
 
     @tornado.gen.coroutine
     def last(self):
-        self.cursor.limit(1).sort('_id', -1)
+        self.limit(1).sort('_id', -1)
         return (yield self.next())
 
     @tornado.gen.coroutine
     def all(self, length=None):
         if length:
-            items = yield self.cursor.to_list(length)
+            items = yield self.to_list(length)
             self.items = yield self.to_python(items)
             return self.items
 
@@ -98,13 +103,13 @@ class QuerySet(object):
 
         if isinstance(sliced, slice):
             if sliced.start is not None and sliced.stop is not None:
-                self.cursor.skip(sliced.start)
+                self.skip(sliced.start)
                 instances = yield self.all(sliced.stop - sliced.start)
                 return instances
             elif sliced.start is not None:
-                self.cursor.skip(sliced.start)
+                self.skip(sliced.start)
             elif sliced.stop is not None:
-                self.cursor.limit(sliced.stop)
+                self.limit(sliced.stop)
         else:
             data = yield self.all()
             return data[sliced]

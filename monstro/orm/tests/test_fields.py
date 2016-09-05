@@ -46,7 +46,7 @@ class IdTest(monstro.testing.AsyncTestCase):
         field = Id()
 
         with self.assertRaises(ValidationError) as context:
-            self.assertEqual('wrong', (yield field.to_python(object)))
+            yield field.to_python(object)
 
         self.assertEqual(
             context.exception.error, Id.default_error_messages['invalid']
@@ -101,13 +101,29 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_to_python(self):
-        field = ForeignKey(
-            default=self.instance.name, related_model=self.model,
-            related_field='name'
-        )
-        value = yield field.to_python(field.default)
+        field = ForeignKey(related_model=self.model, related_field='name')
+        value = yield field.to_python(self.instance.name)
 
         self.assertEqual(value.name, self.instance.name)
+
+    @tornado.testing.gen_test
+    def test_to_python__from_instance(self):
+        field = ForeignKey(related_model=self.model, related_field='name')
+        value = yield field.to_python(self.instance)
+
+        self.assertEqual(value.name, self.instance.name)
+
+    @tornado.testing.gen_test
+    def test_to_python__from_not_saved_instance(self):
+        field = ForeignKey(related_model=self.model, related_field='name')
+
+        with self.assertRaises(ValidationError) as context:
+            yield field.to_python(self.model())
+
+        self.assertEqual(
+            context.exception.error,
+            ForeignKey.default_error_messages['foreign_key']
+        )
 
     @tornado.testing.gen_test
     def test_to_python__from_string_id(self):

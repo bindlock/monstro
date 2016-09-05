@@ -64,18 +64,25 @@ class ForeignKey(Field):
     def to_python(self, value):
         related_model = self.get_related_model()
 
-        if not (isinstance(value, str) or isinstance(value, ObjectId)):
-            if not isinstance(value, related_model):
+        if isinstance(value, related_model):
+            if not value._id:
+                self.fail('foreign_key')
+
+            return value
+        elif isinstance(value, str) and self.related_field == '_id':
+            try:
+                value = ObjectId(value)
+            except bson.errors.InvalidId:
                 self.fail('invalid')
 
-            query = {self.related_field: getattr(value, self.related_field)}
-        else:
-            query = {self.related_field: value}
+        query = {self.related_field: value}
 
         try:
             value = yield related_model.objects.get(**query)
         except related_model.DoesNotExist:
             self.fail('foreign_key')
+        except bson.errors.InvalidDocument:
+            self.fail('invalid')
 
         return value
 

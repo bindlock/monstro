@@ -93,12 +93,6 @@ class Form(object, metaclass=MetaForm):
             except exceptions.ValidationError:
                 self.__values__[name] = field.default
 
-                logger.warning(
-                    'Value type {} don\'t match with field {}'.format(
-                        value, field.__class__
-                    )
-                )
-
         self.__valid__ = True
 
         return self

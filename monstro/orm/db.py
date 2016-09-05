@@ -1,5 +1,7 @@
 # coding=utf-8
 
+import os
+
 import motor.motor_tornado
 
 from monstro.conf import settings
@@ -19,8 +21,10 @@ def get_database(connection=None, database=None):
     if db and not (connection or database):
         return db
 
+    database = database or os.environ.get('DB') or settings.mongodb_database
+
     global db  # pylint:disable=W0603
     connection = connection or get_motor_connection()
-    db = connection[database or settings.mongodb_database]
+    db = connection[database]
 
     return db

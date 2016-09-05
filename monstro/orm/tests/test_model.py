@@ -167,32 +167,44 @@ class ModelTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_validate(self):
-        class RelatedModel(model.Model):
+        class FirstModel(model.Model):
             __collection__ = 'test2'
 
             name = fields.String()
 
-        class CustomModel(model.Model):
+        class SecondModel(model.Model):
             __collection__ = 'test'
 
-            string = fields.String()
-            related = ForeignKey(
-                related_model=RelatedModel, related_field='name'
-            )
+            name = fields.String()
+            related = ForeignKey(related_model=FirstModel)
 
-        related_model = RelatedModel(data={'name': uuid.uuid4().hex})
-        yield related_model.save()
+        class ThirdModel(model.Model):
+            __collection__ = 'test'
 
-        instance = CustomModel(
-            data={'string': uuid.uuid4().hex, 'related': related_model}
+            name = fields.String()
+            related = ForeignKey(related_model=SecondModel)
+
+        first = yield FirstModel.objects.create(name=uuid.uuid4().hex)
+        second = yield SecondModel.objects.create(
+            name=uuid.uuid4().hex, related=first
         )
-        instance.related = 'wrong'
+        third = yield ThirdModel.objects.create(
+            name=uuid.uuid4().hex, related=second
+        )
 
-        with self.assertRaises(ValidationError):
-            yield instance.save()
+        self.assertIsInstance(second.related, FirstModel)
+        self.assertIsInstance(third.related, SecondModel)
+        self.assertIsInstance(third.related.related, FirstModel)
+
+        second.related = 'wrong'
+
+        with self.assertRaises(ValidationError) as context:
+            yield second.save()
+
+        self.assertIn('related', context.exception.error)
 
         try:
-            yield instance.save()
+            yield second.save()
         except ValidationError as e:
             self.assertIn('related', e.error)
 

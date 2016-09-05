@@ -27,4 +27,7 @@ def execute(args):
 
     print('Listen on {0.host}:{0.port}'.format(args))
 
-    tornado.ioloop.IOLoop.instance().start()
+    try:
+        tornado.ioloop.IOLoop.instance().start()
+    except KeyboardInterrupt:
+        print('\n')
