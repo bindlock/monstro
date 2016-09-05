@@ -540,6 +540,12 @@ class DateTimeTest(monstro.testing.AsyncTestCase):
         )
 
     @tornado.testing.gen_test
+    def test_to_internal_value__auto_now(self):
+        field = fields.DateTime(auto_now=True)
+
+        self.assertIsInstance((yield field.to_internal_value(None)), str)
+
+    @tornado.testing.gen_test
     def test_validate__auto_now(self):
         field = fields.DateTime(auto_now=True)
 

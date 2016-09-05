@@ -458,7 +458,7 @@ class DateTime(Field):
     @tornado.gen.coroutine
     def to_internal_value(self, value):
         if self.auto_now:
-            return datetime.datetime.now()
+            value = datetime.datetime.now()
 
         return value.isoformat()
 
