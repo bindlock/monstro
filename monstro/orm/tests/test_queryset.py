@@ -95,3 +95,9 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
         instance = yield self.queryset.filter()[number]
 
         self.assertEqual('test{}'.format(number), instance.name)
+
+    @tornado.testing.gen_test
+    def test_chain_query(self):
+        instance = yield self.queryset.filter().get(name='test0')
+
+        self.assertEqual('test0', instance.name)

@@ -66,12 +66,12 @@ class QuerySet(object):
 
     @tornado.gen.coroutine
     def first(self):
-        self.filter().limit(1).sort('_id', 1)
+        self.cursor.limit(1).sort('_id', 1)
         return (yield self.next())
 
     @tornado.gen.coroutine
     def last(self):
-        self.filter().limit(1).sort('_id', -1)
+        self.cursor.limit(1).sort('_id', -1)
         return (yield self.next())
 
     @tornado.gen.coroutine
