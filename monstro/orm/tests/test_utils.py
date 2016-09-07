@@ -25,7 +25,15 @@ class MongoDBProxyTest(monstro.testing.AsyncTestCase):
 
     def test_get_attribute(self):
         proxy = utils.MongoDBProxy(object)
-        proxy.__name__  # pylint:disable=W0104
+        attribute = proxy.__name__
+
+        self.assertIsInstance(attribute, utils.MongoDBProxy)
+
+    def test_get_item(self):
+        proxy = utils.MongoDBProxy({'__name__': 'name'})
+        item = proxy['__name__']
+
+        self.assertIsInstance(item, utils.MongoDBProxy)
 
     def test_repr(self):
         self.assertEqual(repr(object), repr(utils.MongoDBProxy(object)))

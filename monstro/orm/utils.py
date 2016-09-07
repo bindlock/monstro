@@ -17,7 +17,7 @@ class MongoDBProxy(object):
         return self.__class__(attribute)
 
     def __getitem__(self, item):
-        return self.instance[item]
+        return self.__class__(self.instance[item])
 
     def __repr__(self):
         return repr(self.instance)
