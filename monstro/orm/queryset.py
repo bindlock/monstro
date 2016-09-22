@@ -2,7 +2,7 @@
 
 import tornado.gen
 
-from .db import get_database
+from . import db
 
 
 class QuerySet(object):
@@ -15,7 +15,7 @@ class QuerySet(object):
 
     def __getattr__(self, attribute):
         if self.cursor is None:
-            collection = get_database()[self.model.__collection__]
+            collection = db.database[self.model.__collection__]
             self.cursor = collection.find(self.query)
 
         return getattr(self.cursor, attribute)
@@ -58,7 +58,7 @@ class QuerySet(object):
             query[key] = value
 
         self.query.update(query)
-        cursor = get_database()[self.model.__collection__]
+        cursor = db.database[self.model.__collection__]
 
         data = yield cursor.find_one(self.query)
 

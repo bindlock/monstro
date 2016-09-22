@@ -1,9 +1,20 @@
 # coding=utf-8
 
+import motor
+
 from .decorators import autoreconnect
 
 
-class MongoDBProxy(object):
+class MotorProxy(object):
+
+    objects = (
+        motor.MotorCollection,
+        motor.MotorDatabase,
+        motor.MotorGridFS,
+        motor.MotorGridIn,
+        motor.MotorGridOut,
+        motor.MotorBulkOperationBuilder
+    )
 
     def __init__(self, instance):
         self.instance = instance
@@ -11,7 +22,7 @@ class MongoDBProxy(object):
     def __getattr__(self, attribute):
         attribute = getattr(self.instance, attribute)
 
-        if callable(attribute):
+        if callable(attribute) and not isinstance(attribute, self.objects):
             return autoreconnect()(attribute)
 
         return self.__class__(attribute)

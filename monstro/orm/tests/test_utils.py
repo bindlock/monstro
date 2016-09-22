@@ -13,7 +13,7 @@ class TestModel(orm.Model):
     name = orm.String()
 
 
-class MongoDBProxyTest(monstro.testing.AsyncTestCase):
+class MotorProxyTest(monstro.testing.AsyncTestCase):
 
     drop_database_on_finish = True
 
@@ -24,19 +24,19 @@ class MongoDBProxyTest(monstro.testing.AsyncTestCase):
         self.assertTrue(instance._id)
 
     def test_get_attribute(self):
-        proxy = utils.MongoDBProxy(object)
+        proxy = utils.MotorProxy(object)
         attribute = proxy.__name__
 
-        self.assertIsInstance(attribute, utils.MongoDBProxy)
+        self.assertIsInstance(attribute, utils.MotorProxy)
 
     def test_get_item(self):
-        proxy = utils.MongoDBProxy({'__name__': 'name'})
+        proxy = utils.MotorProxy({'__name__': 'name'})
         item = proxy['__name__']
 
-        self.assertIsInstance(item, utils.MongoDBProxy)
+        self.assertIsInstance(item, utils.MotorProxy)
 
     def test_repr(self):
-        self.assertEqual(repr(object), repr(utils.MongoDBProxy(object)))
+        self.assertEqual(repr(object), repr(utils.MotorProxy(object)))
 
     def test_str(self):
-        self.assertEqual(str(object), str(utils.MongoDBProxy(object)))
+        self.assertEqual(str(object), str(utils.MotorProxy(object)))

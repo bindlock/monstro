@@ -8,9 +8,7 @@ from tornado.testing import gen_test
 
 import monstro.conf
 import monstro.orm.db
-
-
-MONSTRO_TEST_DATABASE = '__monstro__'
+from monstro.core.constants import TEST_DATABASE
 
 
 class AsyncTestCase(tornado.testing.AsyncTestCase):
@@ -24,19 +22,8 @@ class AsyncTestCase(tornado.testing.AsyncTestCase):
     def run_sync(self, function, *args, **kwargs):
         return self.io_loop.run_sync(lambda: function(*args, **kwargs))
 
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-
-        monstro.conf.settings.mongodb_database = MONSTRO_TEST_DATABASE
-
     def setUp(self):
         super().setUp()
-
-        self.connection = monstro.orm.db.get_motor_connection(
-            io_loop=self.io_loop
-        )
-
         self.setUpAsync()
 
     def tearDown(self):
@@ -50,15 +37,14 @@ class AsyncTestCase(tornado.testing.AsyncTestCase):
     @tornado.testing.gen_test
     def tearDownAsync(self):
         if self.drop_database_every_test:
-            yield self.connection.drop_database(MONSTRO_TEST_DATABASE)
+            yield monstro.orm.db.client.drop_database(TEST_DATABASE)
 
     @classmethod
     def tearDownClass(cls):
         if cls.drop_database_on_finish:
-            connection = monstro.orm.db.get_motor_connection()
             io_loop = tornado.ioloop.IOLoop.current()
             io_loop.run_sync(
-                lambda: connection.drop_database(MONSTRO_TEST_DATABASE)
+                lambda: monstro.orm.db.client.drop_database(TEST_DATABASE)
             )
 
 
@@ -76,19 +62,8 @@ class AsyncHTTPTestCase(tornado.testing.AsyncHTTPTestCase):
     def get_app(self):
         raise NotImplementedError()
 
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-
-        monstro.conf.settings.mongodb_database = MONSTRO_TEST_DATABASE
-
     def setUp(self):
         super().setUp()
-
-        self.connection = monstro.orm.db.get_motor_connection(
-            io_loop=self.io_loop
-        )
-
         self.io_loop.run_sync(self.setUpAsync)
 
     def tearDown(self):
@@ -102,15 +77,14 @@ class AsyncHTTPTestCase(tornado.testing.AsyncHTTPTestCase):
     @tornado.gen.coroutine
     def tearDownAsync(self):
         if self.drop_database_every_test:
-            yield self.connection.drop_database(MONSTRO_TEST_DATABASE)
+            yield monstro.orm.db.client.drop_database(TEST_DATABASE)
 
     @classmethod
     def tearDownClass(cls):
         if cls.drop_database_on_finish:
-            connection = monstro.orm.db.get_motor_connection()
             io_loop = tornado.ioloop.IOLoop.current()
             io_loop.run_sync(
-                lambda: connection.drop_database(MONSTRO_TEST_DATABASE)
+                lambda: monstro.orm.db.client.drop_database(TEST_DATABASE)
             )
 
         super().tearDownClass()

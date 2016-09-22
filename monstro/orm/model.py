@@ -40,7 +40,7 @@ class Model(Form, metaclass=MetaModel):
         super().__init__(*args, **kwargs)
         self.__instance__ = self.__instance__ or self
         self.__cursor__ = (
-            self.__collection__ and db.get_database()[self.__collection__]
+            self.__collection__ and db.database[self.__collection__]
         )
 
     def __str__(self):
@@ -58,14 +58,12 @@ class Model(Form, metaclass=MetaModel):
         else:
             self.__values__['_id'] = yield self.__cursor__.insert(data)
 
-        return self
-
     @tornado.gen.coroutine
     def update(self, **kwargs):
         for key, value in kwargs.items():
             self.__values__[key] = value
 
-        return (yield self.save())
+        yield self.save()
 
     @tornado.gen.coroutine
     def refresh(self):

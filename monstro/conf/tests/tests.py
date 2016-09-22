@@ -7,7 +7,7 @@ import tornado.testing
 from monstro.testing import AsyncTestCase
 from monstro.core.constants import SETTINGS_ENVIRONMENT_VARIABLE
 from monstro.core.exceptions import ImproperlyConfigured
-from monstro.conf import _import_settings_class
+from monstro.conf import _import_settings_class, default
 
 
 class SettingsTest(AsyncTestCase):
@@ -21,13 +21,13 @@ class SettingsTest(AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_import(self):
-        settings = _import_settings_class()
+        settings = yield _import_settings_class()
 
-        self.assertTrue(settings.debug)
+        self.assertEqual(settings, default.Settings)
 
     @tornado.testing.gen_test
     def test_import__error(self):
         os.environ.pop(SETTINGS_ENVIRONMENT_VARIABLE)
 
         with self.assertRaises(ImproperlyConfigured):
-            _import_settings_class()
+            yield _import_settings_class()

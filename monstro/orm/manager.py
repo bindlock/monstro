@@ -15,4 +15,6 @@ class Manager(object):
 
     @tornado.gen.coroutine
     def create(self, **kwargs):
-        return (yield (yield self.model(data=kwargs).save()).to_python())
+        instance = self.model(data=kwargs)
+        yield instance.save()
+        return (yield instance.to_python())

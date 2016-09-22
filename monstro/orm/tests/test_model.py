@@ -110,7 +110,6 @@ class ModelTest(monstro.testing.AsyncTestCase):
             string = fields.String()
 
         instance = yield CustomModel.objects.create(string=uuid.uuid4().hex)
-        print(type(instance._id))
 
         _instance = yield CustomModel.objects.get(_id=instance._id)
         yield _instance.update(string=uuid.uuid4().hex)
