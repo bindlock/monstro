@@ -11,28 +11,14 @@
 `pip install monstro`
 
 ## Getting started ##
-
-### Create new project ###
-```
+```bash
 monstro new project example
 cd example
-```
-
-### Create new module ###
-```
-monstro new module modules/example
-```
-
-### Update settings ###
-Set `secret_key` and add `example` to `modules` in `settings/base`.
-
-### Run server ###
-```
 ./manage.py run
 ```
 
 ## Documentation ##
-[Read the Docs](http://monstro.readthedocs.org/)
+[Read the Docs](http://monstro.readthedocs.org/) (in development)
 
 ## Tests ##
 ```bash

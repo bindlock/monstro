@@ -3,8 +3,6 @@
 import logging
 import collections
 
-import tornado.gen
-
 from . import exceptions
 from .fields import Field
 
@@ -74,22 +72,20 @@ class Form(object, metaclass=MetaForm):
             return super().__setattr__(attribute, value)
 
     @classmethod
-    @tornado.gen.coroutine
-    def get_metadata(cls):
+    async def get_metadata(cls):
         metadata = []
 
         for field in cls.__fields__.values():
-            metadata.append((yield field.get_metadata()))
+            metadata.append(await field.get_metadata())
 
         return metadata
 
-    @tornado.gen.coroutine
-    def to_python(self):
+    async def to_python(self):
         for name, field in self.__fields__.items():
             value = self.__values__.get(name)
 
             try:
-                self.__values__[name] = yield field.to_python(value)
+                self.__values__[name] = await field.to_python(value)
             except exceptions.ValidationError:
                 self.__values__[name] = field.default
 
@@ -97,8 +93,7 @@ class Form(object, metaclass=MetaForm):
 
         return self
 
-    @tornado.gen.coroutine
-    def validate(self):
+    async def validate(self):
         self.__errors__ = {}
 
         for name, field in self.__fields__.items():
@@ -109,7 +104,7 @@ class Form(object, metaclass=MetaForm):
                     if not (value is None or value == field.default):
                         field.fail('read_only')
 
-                self.__values__[name] = yield field.validate(value, self)
+                self.__values__[name] = await field.validate(value, self)
             except exceptions.ValidationError as e:
                 self.__errors__[name] = e.error
 
@@ -120,8 +115,7 @@ class Form(object, metaclass=MetaForm):
 
         return self
 
-    @tornado.gen.coroutine
-    def serialize(self):
+    async def serialize(self):
         assert self.__valid__, (
             'You cannot call .serialize() before call .validate()'
         )
@@ -132,12 +126,11 @@ class Form(object, metaclass=MetaForm):
             value = self.__values__.get(name)
 
             if value is not None:
-                data[name] = yield field.to_internal_value(value)
+                data[name] = await field.to_internal_value(value)
             else:
                 data[name] = None
 
         return data
 
-    @tornado.gen.coroutine
-    def save(self):
+    async def save(self):
         pass

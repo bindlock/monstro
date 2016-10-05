@@ -1,7 +1,5 @@
 # coding=utf-8
 
-import tornado.gen
-
 from monstro.forms.forms import Form, MetaForm
 
 from . import manager, db
@@ -46,35 +44,45 @@ class Model(Form, metaclass=MetaModel):
     def __str__(self):
         return '{} object'.format(self.__class__.__name__)
 
-    @tornado.gen.coroutine
-    def save(self):
-        yield self.validate()
+    async def on_save(self):
+        for name, field in self.__fields__.items():
+            value = self.__values__.get(name)
+            self.__values__[name] = await field.on_save(value)
 
-        data = yield self.serialize()
+    async def on_create(self):
+        for name, field in self.__fields__.items():
+            value = self.__values__.get(name)
+            self.__values__[name] = await field.on_create(value)
+
+    async def save(self):
+        if not self._id:
+            await self.on_create()
+
+        await self.on_save()
+        await self.validate()
+
+        data = await self.serialize()
         data.pop('_id')
 
         if self._id:
-            yield self.__cursor__.update({'_id': self._id}, data)
+            await self.__cursor__.update({'_id': self._id}, data)
         else:
-            self.__values__['_id'] = yield self.__cursor__.insert(data)
+            self.__values__['_id'] = await self.__cursor__.insert(data)
 
-    @tornado.gen.coroutine
-    def update(self, **kwargs):
+        return self
+
+    async def update(self, **kwargs):
         for key, value in kwargs.items():
             self.__values__[key] = value
 
-        yield self.save()
+        return await self.save()
 
-    @tornado.gen.coroutine
-    def refresh(self):
+    async def refresh(self):
         if self._id:
-            data = yield self.__cursor__.find_one({'_id': self._id})
-
+            data = await self.__cursor__.find_one({'_id': self._id})
             self.__values__.update(data)
+            return await self.to_python()
 
-            return (yield self.to_python())
-
-    @tornado.gen.coroutine
-    def delete(self):
+    async def delete(self):
         if self._id:
-            yield self.__cursor__.remove({'_id': self._id})
+            await self.__cursor__.remove({'_id': self._id})

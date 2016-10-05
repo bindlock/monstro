@@ -3,7 +3,6 @@
 import json
 
 import tornado.web
-import tornado.gen
 from tornado.httputil import url_concat
 
 import monstro.testing
@@ -21,9 +20,8 @@ class APIViewTest(monstro.testing.AsyncHTTPTestCase):
 
         value = String()
 
-        @tornado.gen.coroutine
-        def validate(self):
-            data = yield super().validate()
+        async def validate(self):
+            data = await super().validate()
 
             if self.value == 'wrong':
                 raise self.ValidationError('wrong')
@@ -36,20 +34,16 @@ class APIViewTest(monstro.testing.AsyncHTTPTestCase):
 
             form_class = self.TestForm
 
-            @tornado.gen.coroutine
-            def get(self):
+            async def get(self):
                 self.write({'key': 'value'})
 
-            @tornado.gen.coroutine
-            def post(self):
+            async def post(self):
                 self.write({'key': 'value'})
 
-            @tornado.gen.coroutine
-            def put(self):
+            async def put(self):
                 self.write(self.data)
 
-            @tornado.gen.coroutine
-            def delete(self):
+            async def delete(self):
                 self.write(self.query)
 
         return tornado.web.Application(
@@ -130,8 +124,7 @@ class APIViewWithAuthenticationTest(monstro.testing.AsyncHTTPTestCase):
 
             authentication = HeaderAuthentication(self.Token, 'value')
 
-            @tornado.gen.coroutine
-            def get(self):
+            async def get(self):
                 self.write({'key': 'value'})
 
         return tornado.web.Application(
@@ -174,9 +167,8 @@ class ModelAPIViewTest(monstro.testing.AsyncHTTPTestCase):
 
         value = String()
 
-        @tornado.gen.coroutine
-        def validate(self):
-            data = yield super().validate()
+        async def validate(self):
+            data = await super().validate()
 
             if self.value == 'wrong':
                 raise self.ValidationError('wrong')
@@ -305,7 +297,7 @@ class ModelAPIViewTest(monstro.testing.AsyncHTTPTestCase):
 
     def test_put__validate(self):
         instance = self.run_sync(self.TestModel.objects.create, value='test')
-        
+
         payload = {'value': 'wrong'}
         response = self.fetch(
             '/test/{}'.format(instance._id), method='PUT',

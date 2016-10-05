@@ -1,6 +1,7 @@
 # coding=utf-8
 
 import uuid
+import datetime
 
 import tornado.gen
 import tornado.testing
@@ -88,6 +89,17 @@ class ModelTest(monstro.testing.AsyncTestCase):
         _model = yield instance.objects.get(string=instance.string)
 
         self.assertEqual(instance.string, _model.string)
+
+    @tornado.testing.gen_test
+    def test_save__on_create(self):
+        class CustomModel(model.Model):
+            __collection__ = 'test'
+
+            datetime = fields.DateTime(auto_now_on_create=True)
+
+        instance = yield CustomModel.objects.create(string=uuid.uuid4().hex)
+
+        self.assertIsInstance(instance.datetime, datetime.datetime)
 
     @tornado.testing.gen_test
     def test_update(self):

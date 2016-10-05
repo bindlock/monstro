@@ -27,8 +27,7 @@ class SettingsSchema(forms.Form):
     nosetests_arguments = fields.Array(required=False)
 
 
-@tornado.gen.coroutine
-def _import_settings_class():
+async def _import_settings_class():
     try:
         settings_path = os.environ[SETTINGS_ENVIRONMENT_VARIABLE]
     except KeyError:
@@ -39,7 +38,7 @@ def _import_settings_class():
         )
 
     settings_class = import_object(settings_path)
-    yield SettingsSchema(instance=settings_class).validate()
+    await SettingsSchema(instance=settings_class).validate()
 
     return settings_class
 

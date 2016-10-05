@@ -1,7 +1,5 @@
 # coding=utf-8
 
-import tornado.gen
-
 from .queryset import QuerySet
 
 
@@ -13,8 +11,6 @@ class Manager(object):
     def __getattr__(self, attribute):
         return getattr(QuerySet(self.model), attribute)
 
-    @tornado.gen.coroutine
-    def create(self, **kwargs):
-        instance = self.model(data=kwargs)
-        yield instance.save()
-        return (yield instance.to_python())
+    async def create(self, **kwargs):
+        instance = await self.model(data=kwargs).save()
+        return await instance.to_python()

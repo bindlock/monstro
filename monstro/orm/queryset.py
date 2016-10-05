@@ -1,117 +1,141 @@
 # coding=utf-8
 
-import tornado.gen
+import pymongo
 
-from . import db
+from . import db, exceptions
 
 
 class QuerySet(object):
 
-    def __init__(self, model):
+    def __init__(self, model, query=None, offset=0, limit=0,
+                 sorts=None, collection=None):
         self.model = model
-        self.cursor = None
-        self.items = []
-        self.query = {}
+        self.query = query or {}
+        self.offset = offset
+        self.limit = limit
 
-    def __getattr__(self, attribute):
-        if self.cursor is None:
-            collection = db.database[self.model.__collection__]
-            self.cursor = collection.find(self.query)
+        self._sorts = sorts or []
+        self._collection = collection
 
-        return getattr(self.cursor, attribute)
+        self._cursor = None
 
-    @tornado.gen.coroutine
-    def to_python(self, items):
-        constructed = []
+    @property
+    def cursor(self):
+        if not self._cursor:
+            self._cursor = self.collection.find(
+                self.query, skip=self.offset, limit=self.limit, sort=self.sorts
+            )
 
-        for item in items:
-            instance = yield self.model(data=item).to_python()
-            constructed.append(instance)
+        return self._cursor
 
-        return constructed
+    @property
+    def sorts(self):
+        sorts = []
 
-    @tornado.gen.coroutine
-    def next(self):
-        if (yield self.fetch_next):
-            item = self.next_object()
-            instance = (yield self.to_python([item]))[0]
+        for sort in self._sorts:
+            if sort.lstrip('-') not in self.model.__fields__:
+                raise exceptions.InvalidQuery(
+                    '{} has not field {}'.format(self.model, sort)
+                )
 
-            return instance
+            if sort.startswith('-'):
+                sorts.append((sort.lstrip('-'), pymongo.DESCENDING))
+            else:
+                sorts.append((sort, pymongo.ASCENDING))
 
-    def filter(self, **query):
-        self.query.update(query)
-        return self
+        return sorts
 
-    @tornado.gen.coroutine
-    def get(self, **query):
-        for key, value in query.items():
-            if key == '_id':
-                continue
+    @property
+    def collection(self):
+        if not self._collection:
+            self._collection = db.database[self.model.__collection__]
 
+        return self._collection
+
+    def __aiter__(self):
+        return self.clone()
+
+    async def __anext__(self):
+        if await self.cursor.fetch_next:
+            return await self.model(data=self.cursor.next_object()).to_python()
+
+        raise StopAsyncIteration()
+
+    def clone(self, **kwargs):
+        kwargs.setdefault('model', self.model)
+        kwargs.setdefault('query', self.query)
+        kwargs.setdefault('offset', self.offset)
+        kwargs.setdefault('limit', self.limit)
+        kwargs.setdefault('sorts', self._sorts)
+        kwargs.setdefault('collection', self._collection)
+        return QuerySet(**kwargs)
+
+    async def validate_query(self):
+        for key, value in self.query.items():
             try:
                 field = self.model.__fields__[key]
-                value = yield field.to_python(value)
-                value = yield field.to_internal_value(value)
-            except (KeyError, self.model.ValidationError):
-                pass
+                value = await field.to_python(value)
 
-            query[key] = value
+                if key != '_id':
+                    value = await field.to_internal_value(value)
+            except self.model.ValidationError as e:
+                raise exceptions.InvalidQuery(str(e))
+            except KeyError:
+                raise exceptions.InvalidQuery(
+                    '{} has not field {}'.format(self.model, key)
+                )
 
-        self.query.update(query)
-        cursor = db.database[self.model.__collection__]
+            self.query[key] = value
 
-        data = yield cursor.find_one(self.query)
+        return self.query
 
-        if not data:
-            raise self.model.DoesNotExist()
+    def filter(self, **query):
+        _query = self.query.copy()
+        _query.update(query)
+        return self.clone(query=_query)
 
-        instance = yield self.model(data=data).to_python()
+    def order_by(self, *fields):
+        return self.clone(sorts=self.sorts + list(fields))
 
-        return instance
+    async def count(self):
+        return await self.clone().cursor.count(True)
 
-    @tornado.gen.coroutine
-    def first(self):
-        self.limit(1).sort('_id', 1)
-        return (yield self.next())
+    async def get(self, **query):
+        self = self.filter(**query)
+        await self.validate_query()
+        self.limit = 1
 
-    @tornado.gen.coroutine
-    def last(self):
-        self.limit(1).sort('_id', -1)
-        return (yield self.next())
+        async for item in self:
+            return item
 
-    @tornado.gen.coroutine
-    def all(self, length=None):
-        if length:
-            items = yield self.to_list(length)
-            self.items = yield self.to_python(items)
-            return self.items
+        raise self.model.DoesNotExist()
 
-        while True:
-            item = yield self.next()
+    async def first(self):
+        self = self.clone()
+        self._sorts.append('_id')
+        return await self.get()
 
-            if item:
-                self.items.append(item)
-            else:
-                break
+    async def last(self):
+        self = self.clone()
+        self._sorts.append('-_id')
+        return await self.get()
 
-        return self.items
+    def all(self):
+        return self.filter()
 
-    @tornado.gen.coroutine
-    def __getitem__(self, sliced):
-        if self.items:
-            return self.items[sliced]
+    def __getitem__(self, item):
+        self = self.clone()
 
-        if isinstance(sliced, slice):
-            if sliced.start is not None and sliced.stop is not None:
-                self.skip(sliced.start)
-                instances = yield self.all(sliced.stop - sliced.start)
-                return instances
-            elif sliced.start is not None:
-                self.skip(sliced.start)
-            elif sliced.stop is not None:
-                self.limit(sliced.stop)
+        if isinstance(item, slice):
+            if item.start is not None and item.stop is not None:
+                self.offset = item.start
+                self.limit = item.stop - item.start
+            elif item.start is not None:
+                self.offset = item.start
+            elif item.stop is not None:
+                self.limit = item.stop
         else:
-            data = yield self.all()
-            return data[sliced]
+            self.offset = item
+            self.limit = 1
 
         return self

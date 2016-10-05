@@ -8,7 +8,7 @@ import monstro.management
 
 
 def execute(args):
-    templates = ['project', 'module']
+    templates = ('project', 'module')
     argparser = argparse.ArgumentParser(description='Create template')
 
     argparser.add_argument('template', choices=templates)

@@ -1,9 +1,9 @@
 # coding=utf-8
 
-import tornado.web
+import monstro.views
 
 
-class IndexHandler(tornado.web.RequestHandler):
+class IndexView(monstro.views.View):
 
     def get(self):
         self.write('Hello from Monstro!')

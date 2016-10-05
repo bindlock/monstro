@@ -11,3 +11,8 @@ class ORMError(MonstroError):
 class DoesNotExist(ORMError):
 
     pass
+
+
+class InvalidQuery(ORMError):
+
+    pass

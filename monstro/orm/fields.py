@@ -1,12 +1,13 @@
 # coding=utf-8
 
-import tornado.gen
 import bson.errors
 from bson.objectid import ObjectId
 from tornado.util import import_object
 
 from monstro.forms import widgets
 from monstro.forms.fields import *  # pylint: disable=W0401,W0614
+
+from .exceptions import InvalidQuery
 
 
 class Id(Field):
@@ -20,8 +21,7 @@ class Id(Field):
         kwargs['required'] = False
         super().__init__(**kwargs)
 
-    @tornado.gen.coroutine
-    def to_python(self, value):
+    async def to_python(self, value):
         if isinstance(value, str):
             try:
                 return ObjectId(value)
@@ -32,8 +32,7 @@ class Id(Field):
 
         return value
 
-    @tornado.gen.coroutine
-    def to_internal_value(self, value):
+    async def to_internal_value(self, value):
         return str(value)
 
 
@@ -59,8 +58,7 @@ class ForeignKey(Field):
 
         return self.related_model
 
-    @tornado.gen.coroutine
-    def to_python(self, value):
+    async def to_python(self, value):
         related_model = self.get_related_model()
 
         if isinstance(value, related_model):
@@ -77,16 +75,15 @@ class ForeignKey(Field):
         query = {self.related_field: value}
 
         try:
-            value = yield related_model.objects.get(**query)
+            value = await related_model.objects.get(**query)
         except related_model.DoesNotExist:
             self.fail('foreign_key')
-        except bson.errors.InvalidDocument:
+        except (bson.errors.InvalidDocument, InvalidQuery):
             self.fail('invalid')
 
         return value
 
-    @tornado.gen.coroutine
-    def to_internal_value(self, value):
+    async def to_internal_value(self, value):
         value = getattr(value, self.related_field)
 
         if self.related_field == '_id':
@@ -94,14 +91,12 @@ class ForeignKey(Field):
 
         return value
 
-    @tornado.gen.coroutine
-    def get_metadata(self):
-        items = yield self.get_related_model().objects.all()
+    async def get_metadata(self):
         choices = []
 
-        for item in items:
+        async for item in self.get_related_model().objects.all():
             choices.append((str(getattr(item, self.related_field)), str(item)))
 
         self.widget = widgets.Select(choices)
 
-        return (yield super().get_metadata())
+        return await super().get_metadata()

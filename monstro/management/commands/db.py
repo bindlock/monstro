@@ -2,8 +2,8 @@
 
 import subprocess
 
-from monstro.conf import settings
+from monstro.orm import db
 
 
 def execute(args):
-    subprocess.check_call(['mongo', settings.mongodb_database])
+    subprocess.check_call(['mongo', db.database.name])

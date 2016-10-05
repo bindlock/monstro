@@ -12,5 +12,5 @@ from monstro.core.constants import (
 
 
 def execute(args):
-    os.environ[MONGODB_URI_ENVIRONMENT_VARIABLE] = TEST_MONGODB_URI
+    os.environ.setdefault(MONGODB_URI_ENVIRONMENT_VARIABLE, TEST_MONGODB_URI)
     nose.run(argv=getattr(settings, 'nosetests_arguments', []))

@@ -2,8 +2,6 @@
 
 import math
 
-import tornado.gen
-
 
 DEFAULT_LIMIT = 50
 
@@ -25,24 +23,21 @@ class Pagination(object):
     def get_limit(self):
         raise NotImplementedError()
 
-    @tornado.gen.coroutine
-    def serialize(self, instance):
+    async def serialize(self, instance):
         if self.serializer:
             if isinstance(instance, self.serializer):
-                return (yield instance.serialize())
+                return await instance.serialize()
 
-            return (yield self.serializer(instance=instance).serialize())
+            return await self.serializer(instance=instance).serialize()
 
         return instance
 
-    @tornado.gen.coroutine
-    def paginate(self, queryset):
+    async def paginate(self, queryset):
         offset = self.get_offset()
         limit = self.get_limit()
         size = limit - offset
 
-        count = yield queryset.count()
-        instances = yield queryset[offset:limit]
+        count = await queryset.count()
 
         pages = {}
         pages['current'] = int(math.ceil(float(offset) / size)) + 1
@@ -56,8 +51,8 @@ class Pagination(object):
 
         items = []
 
-        for instance in instances:
-            items.append((yield self.serialize(instance)))
+        async for instance in queryset[offset:limit]:
+            items.append(await self.serialize(instance))
 
         return {'pages': pages, 'items': items}
 

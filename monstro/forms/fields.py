@@ -2,10 +2,9 @@
 
 import re
 import json
-import urllib.parse
 import datetime
+import urllib.parse
 
-import tornado.gen
 import tornado.concurrent
 
 from . import widgets
@@ -82,8 +81,7 @@ class Field(object):
     def bind(self, **kwargs):
         self.__dict__.update(kwargs)
 
-    @tornado.gen.coroutine
-    def validate(self, value=None, model=None):
+    async def validate(self, value=None, model=None):
         if value is None:
             value = self.default
 
@@ -93,14 +91,14 @@ class Field(object):
             else:
                 return None
 
-        value = yield self.to_python(value)
+        value = await self.to_python(value)
 
         for validator in self.validators:
-            value = yield validator(value)
+            value = await validator(value)
 
         if self.unique and hasattr(self, 'model'):
             try:
-                instance = yield self.model.objects.get(**{self.name: value})
+                instance = await self.model.objects.get(**{self.name: value})
             except self.model.DoesNotExist:
                 instance = None
 
@@ -126,16 +124,19 @@ class Field(object):
 
         return self._default
 
-    @tornado.gen.coroutine
-    def to_python(self, value):
+    async def to_python(self, value):
         return value
 
-    @tornado.gen.coroutine
-    def to_internal_value(self, value):
+    async def to_internal_value(self, value):
         return value
 
-    @tornado.gen.coroutine
-    def get_metadata(self):
+    async def on_save(self, value):
+        return value
+
+    async def on_create(self, value):
+        return value
+
+    async def get_metadata(self):
         metadata = {
             'name': self.name,
             'label': self.label or (self.name and self.name.title()),
@@ -145,7 +146,7 @@ class Field(object):
         }
 
         if not (self._default is None or callable(self._default)):
-            metadata['default'] = yield self.to_internal_value(self._default)
+            metadata['default'] = await self.to_internal_value(self._default)
         else:
             metadata['default'] = None
 
@@ -165,8 +166,7 @@ class Type(Field):
         'invalid': 'Value must be a valid {0.type.__name__}'
     }
 
-    @tornado.gen.coroutine
-    def to_python(self, value):
+    async def to_python(self, value):
         if not isinstance(value, self.type):
             self.fail('invalid')
 
@@ -196,9 +196,8 @@ class String(Type):
         self.max_length = max_length
         super().__init__(**kwargs)
 
-    @tornado.gen.coroutine
-    def to_python(self, value):
-        value = yield super().to_python(value)
+    async def to_python(self, value):
+        value = await super().to_python(value)
 
         if self.min_length is not None and len(value) < self.min_length:
             self.fail('min_length')
@@ -222,8 +221,7 @@ class Numeric(Type):
         self.max_value = max_value
         super().__init__(**kwargs)
 
-    @tornado.gen.coroutine
-    def to_python(self, value):
+    async def to_python(self, value):
         try:
             value = self.type(value)
         except (TypeError, ValueError):
@@ -270,8 +268,7 @@ class Choice(Field):
         self.widget = widgets.Select(self.choices)
         super().__init__(**kwargs)
 
-    @tornado.gen.coroutine
-    def to_python(self, value):
+    async def to_python(self, value):
         choices = [choice[0] for choice in self.choices]
 
         if value not in choices:
@@ -293,16 +290,15 @@ class Array(Type):
         self.field = field
         super().__init__(**kwargs)
 
-    @tornado.gen.coroutine
-    def to_python(self, value):
-        value = yield super().to_python(value)
+    async def to_python(self, value):
+        value = await super().to_python(value)
 
         if self.field:
             values = []
 
             for index, item in enumerate(value):
                 try:
-                    values.append((yield self.field.to_python(item)))
+                    values.append(await self.field.to_python(item))
                 except ValidationError as e:
                     self.fail('child', index=index, message=e.error)
 
@@ -310,13 +306,12 @@ class Array(Type):
 
         return value
 
-    @tornado.gen.coroutine
-    def to_internal_value(self, value):
+    async def to_internal_value(self, value):
         if self.field:
             values = []
 
             for item in value:
-                values.append((yield self.field.to_internal_value(item)))
+                values.append(await self.field.to_internal_value(item))
 
             return values
 
@@ -335,9 +330,8 @@ class MultipleChoice(Array, Choice):
 
         self.widget.attributes['multiple'] = True
 
-    @tornado.gen.coroutine
-    def to_python(self, value):
-        value = yield Array.to_python(self, value)
+    async def to_python(self, value):
+        value = await Array.to_python(self, value)
 
         choices = [choice[0] for choice in self.choices]
 
@@ -353,9 +347,8 @@ class Url(String):
         'url': 'Value must be a valid URL',
     }
 
-    @tornado.gen.coroutine
-    def to_python(self, value):
-        value = yield super().to_python(value)
+    async def to_python(self, value):
+        value = await super().to_python(value)
 
         url = urllib.parse.urlparse(value)
 
@@ -375,9 +368,8 @@ class RegexMatch(String):
         self.pattern = re.compile(pattern or self.pattern)
         super().__init__(**kwargs)
 
-    @tornado.gen.coroutine
-    def to_python(self, value):
-        value = yield super().to_python(value)
+    async def to_python(self, value):
+        value = await super().to_python(value)
 
         if not self.pattern.match(value):
             self.fail('pattern')
@@ -414,8 +406,7 @@ class Map(Field):
         'invalid': 'Value must be a map or JSON string',
     }
 
-    @tornado.gen.coroutine
-    def to_python(self, value):
+    async def to_python(self, value):
         if isinstance(value, str):
             try:
                 value = json.loads(value)
@@ -434,10 +425,11 @@ class DateTime(Field):
         'invalid': 'Datetime must be in next formats: {0.available_formats}'
     }
 
-    default_format = '%Y-%m-%dT%H:%M:%S'
+    default_format = '%Y-%m-%dT%H:%M:%S.%f'
 
     def __init__(self, *, input_formats=None, output_format=None,
                  auto_now=False, auto_now_on_create=False, **kwargs):
+
         super().__init__(**kwargs)
         self.input_formats = input_formats or []
         self.output_format = output_format
@@ -447,20 +439,25 @@ class DateTime(Field):
         if self.auto_now or self.auto_now_on_create:
             self.required = False
 
-        if self.auto_now_on_create or self.auto_now:
-            self._default = datetime.datetime.now
-
         self.widget.attributes['format'] = self.output_format
 
     @property
     def available_formats(self):
         return list(set(self.input_formats + [self.default_format]))
 
-    @tornado.gen.coroutine
-    def to_python(self, value):
+    async def on_save(self, value):
         if self.auto_now:
             return datetime.datetime.now()
 
+        return value
+
+    async def on_create(self, value):
+        if self.auto_now_on_create:
+            return datetime.datetime.now()
+
+        return value
+
+    async def to_python(self, value):
         if isinstance(value, str):
             for input_format in self.available_formats:
                 try:
@@ -475,11 +472,7 @@ class DateTime(Field):
 
         return value
 
-    @tornado.gen.coroutine
-    def to_internal_value(self, value):
-        if self.auto_now:
-            value = datetime.datetime.now()
-
+    async def to_internal_value(self, value):
         return value.isoformat()
 
 
@@ -492,9 +485,8 @@ class Date(DateTime):
 
     default_format = '%Y-%m-%d'
 
-    @tornado.gen.coroutine
-    def to_python(self, value):
-        return (yield super().to_python(value)).date()
+    async def to_python(self, value):
+        return (await super().to_python(value)).date()
 
 
 class Time(DateTime):
@@ -506,6 +498,5 @@ class Time(DateTime):
 
     default_format = '%H:%M:%S'
 
-    @tornado.gen.coroutine
-    def to_python(self, value):
-        return (yield super().to_python(value)).time()
+    async def to_python(self, value):
+        return (await super().to_python(value)).time()

@@ -10,7 +10,8 @@ import tornado.ioloop
 import monstro.testing
 from monstro.forms import fields
 
-from monstro.orm import model
+from monstro.orm import model, exceptions
+from monstro.orm.queryset import QuerySet
 
 
 class QuerySetTest(monstro.testing.AsyncTestCase):
@@ -22,6 +23,7 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
             __collection__ = uuid.uuid4().hex
 
             name = fields.String()
+            age = fields.Integer(required=False)
 
         self.model = Test
 
@@ -29,6 +31,39 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
 
         for i in range(self.number):
             yield self.model.objects.create(name='test{}'.format(i))
+
+    @tornado.testing.gen_test
+    def test_validate_query(self):
+        queryset = self.model.objects.filter(age='1')
+
+        self.assertEqual({'age': 1}, (yield queryset.validate_query()))
+
+    @tornado.testing.gen_test
+    def test_validate_query__invalid_field(self):
+        queryset = self.model.objects.filter(test='1')
+
+        with self.assertRaises(exceptions.InvalidQuery):
+            yield queryset.validate_query()
+
+    @tornado.testing.gen_test
+    def test_validate_query__invalid_query(self):
+        queryset = self.model.objects.filter(age='wrong')
+
+        with self.assertRaises(exceptions.InvalidQuery):
+            yield queryset.validate_query()
+
+    @tornado.testing.gen_test
+    def test_sorts(self):
+        queryset = self.model.objects.filter()
+
+        self.assertEqual([('name', -1)], queryset.order_by('-name').sorts)
+
+    @tornado.testing.gen_test
+    def test_sorts__invalid_field(self):
+        queryset = self.model.objects.filter()
+
+        with self.assertRaises(exceptions.InvalidQuery):
+            __ = queryset.order_by('-wrong').sorts
 
     @tornado.testing.gen_test
     def test_filter(self):
@@ -51,45 +86,35 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
     def test_all(self):
-        items = yield self.model.objects.filter().all()
-
-        self.assertEqual(self.number, len(items))
+        self.assertIsInstance(self.model.objects.all(), QuerySet)
 
     @tornado.testing.gen_test
     def test_slice(self):
-        items = yield self.model.objects.filter()[1:7]
+        items = self.model.objects.filter()[2:7]
 
-        self.assertEqual(6, len(items))
-
-    @tornado.testing.gen_test
-    def test_slice_by_items(self):
-        queryset = self.model.objects.filter()
-        yield queryset.all()
-        items = yield queryset[1:7]
-
-        self.assertEqual(6, len(items))
+        self.assertEqual(5, (yield items.count()))
 
     @tornado.testing.gen_test
     def test_slice_left(self):
         number = random.randint(5, 7)
 
-        items = yield (yield self.model.objects.filter()[number:]).all()
+        items = self.model.objects.filter()[number:]
 
-        self.assertEqual(self.number - number, len(items))
+        self.assertEqual(self.number - number, (yield items.count()))
 
     @tornado.testing.gen_test
     def test_slice_right(self):
         number = random.randint(5, 7)
 
-        items = yield (yield self.model.objects.filter()[:number]).all()
+        items = self.model.objects.filter()[:number]
 
-        self.assertEqual(number, len(items))
+        self.assertEqual(number, (yield items.count()))
 
     @tornado.testing.gen_test
     def test_slice_index(self):
         number = random.randint(5, 7)
 
-        instance = yield self.model.objects.filter()[number]
+        instance = yield self.model.objects.filter()[number].get()
 
         self.assertEqual('test{}'.format(number), instance.name)
 

@@ -1,15 +1,12 @@
 # coding=utf-8
 
-import tornado.gen
-
 
 class ModelAPIMixin(object):
 
-    @tornado.gen.coroutine
-    def options(self, *args, **kwargs):
+    async def options(self, *args, **kwargs):
         self.set_status(200)
         self.finish({
-            'fields': (yield self.form_class.get_metadata()),
+            'fields': await self.form_class.get_metadata(),
             'lookup_field': self.lookup_field,
             'search_fields': self.search_fields,
             'search_query_argument': self.search_query_argument
@@ -18,10 +15,9 @@ class ModelAPIMixin(object):
 
 class CreateAPIMixin(ModelAPIMixin):
 
-    @tornado.gen.coroutine
-    def post(self, *args, **kwargs):
+    async def post(self, *args, **kwargs):
         try:
-            instance = yield self.model.objects.create(**self.data)
+            instance = await self.model.objects.create(**self.data)
         except self.model.ValidationError as e:
             if isinstance(e.error, str):
                 return self.send_error(400, reason=e.error)
@@ -29,17 +25,16 @@ class CreateAPIMixin(ModelAPIMixin):
             return self.send_error(400, details=e.error)
 
         self.set_status(201)
-        self.finish((yield self.form_class(instance=instance).serialize()))
+        self.finish(await self.form_class(instance=instance).serialize())
 
 
 class UpdateAPIMixin(ModelAPIMixin):
 
-    @tornado.gen.coroutine
-    def put(self, *args, **kwargs):
-        instance = yield self.get_object()
+    async def put(self, *args, **kwargs):
+        instance = await self.get_object()
 
         try:
-            yield instance.update(**self.data)
+            await instance.update(**self.data)
         except self.model.ValidationError as e:
             if isinstance(e.error, str):
                 return self.send_error(400, reason=e.error)
@@ -47,20 +42,18 @@ class UpdateAPIMixin(ModelAPIMixin):
             return self.send_error(400, details=e.error)
 
         self.set_status(200)
-        self.finish((yield self.form_class(instance=instance).serialize()))
+        self.finish(await self.form_class(instance=instance).serialize())
 
-    @tornado.gen.coroutine
-    def patch(self, *args, **kwargs):
-        yield self.put()
+    async def patch(self, *args, **kwargs):
+        await self.put()
 
 
 class DeleteAPIMixin(ModelAPIMixin):
 
-    @tornado.gen.coroutine
-    def delete(self, *args, **kwargs):
-        instance = yield self.get_object()
+    async def delete(self, *args, **kwargs):
+        instance = await self.get_object()
 
-        yield instance.delete()
+        await instance.delete()
 
         self.set_status(200)
         self.finish({})

@@ -524,11 +524,27 @@ class SlugTest(monstro.testing.AsyncTestCase):
 class DateTimeTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
-    def test_init__auto_now_on_create(self):
+    def test_on_save(self):
+        field = fields.DateTime(auto_now=True)
+        self.assertIsInstance((yield field.on_save(None)), datetime.datetime)
+
+    @tornado.testing.gen_test
+    def test_on_save__without_auto(self):
+        field = fields.DateTime()
+
+        self.assertEqual((yield field.on_save(None)), None)
+
+    @tornado.testing.gen_test
+    def test_on_create(self):
         field = fields.DateTime(auto_now_on_create=True)
 
-        self.assertTrue(field.default)
-        self.assertIsInstance((yield field.validate(None)), datetime.datetime)
+        self.assertIsInstance((yield field.on_create(None)), datetime.datetime)
+
+    @tornado.testing.gen_test
+    def test_on_create__without_auto(self):
+        field = fields.DateTime()
+
+        self.assertEqual((yield field.on_create(None)), None)
 
     @tornado.testing.gen_test
     def test_to_internal_value(self):
@@ -538,19 +554,6 @@ class DateTimeTest(monstro.testing.AsyncTestCase):
             '2015-07-13T00:00:00',
             (yield field.to_internal_value(datetime.datetime(2015, 7, 13)))
         )
-
-    @tornado.testing.gen_test
-    def test_to_internal_value__auto_now(self):
-        field = fields.DateTime(auto_now=True)
-
-        self.assertIsInstance((yield field.to_internal_value(None)), str)
-
-    @tornado.testing.gen_test
-    def test_validate__auto_now(self):
-        field = fields.DateTime(auto_now=True)
-
-        self.assertTrue(field.auto_now)
-        self.assertTrue((yield field.validate(None)))
 
     @tornado.testing.gen_test
     def test_to_python(self):
@@ -589,13 +592,6 @@ class DateTimeTest(monstro.testing.AsyncTestCase):
 class DateTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
-    def test_init__auto_now_on_create(self):
-        field = fields.Date(auto_now_on_create=True)
-
-        self.assertTrue(field.default)
-        self.assertTrue((yield field.validate(None)))
-
-    @tornado.testing.gen_test
     def test_to_internal_value(self):
         field = fields.Date()
 
@@ -603,12 +599,6 @@ class DateTest(monstro.testing.AsyncTestCase):
             '2015-07-13',
             (yield field.to_internal_value(datetime.date(2015, 7, 13)))
         )
-
-    @tornado.testing.gen_test
-    def test_to_internal_value__auto_now(self):
-        field = fields.Date(auto_now=True)
-
-        self.assertTrue((yield field.to_internal_value(None)))
 
     @tornado.testing.gen_test
     def test_to_python(self):
@@ -622,25 +612,12 @@ class DateTest(monstro.testing.AsyncTestCase):
 class TimeTest(monstro.testing.AsyncTestCase):
 
     @tornado.testing.gen_test
-    def test_init__auto_now_on_create(self):
-        field = fields.Time(auto_now_on_create=True)
-
-        self.assertTrue(field.default)
-        self.assertTrue((yield field.validate(None)))
-
-    @tornado.testing.gen_test
     def test_to_internal_value(self):
         field = fields.Time()
 
         self.assertEqual(
             '00:00:00', (yield field.to_internal_value(datetime.time()))
         )
-
-    @tornado.testing.gen_test
-    def test_to_internal_value__auto_now(self):
-        field = fields.Time(auto_now=True)
-
-        self.assertTrue((yield field.to_internal_value(None)))
 
     @tornado.testing.gen_test
     def test_to_python(self):

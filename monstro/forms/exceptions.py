@@ -18,6 +18,6 @@ class ValidationError(FormError):
 
     def __str__(self):
         if self.field:
-            return '{} - {}'.format(self.field, self.error.lower())
+            return '{} - {}'.format(self.field, self.error)
 
         return str(self.error)
