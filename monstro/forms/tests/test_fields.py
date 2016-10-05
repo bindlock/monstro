@@ -560,7 +560,7 @@ class DateTimeTest(monstro.testing.AsyncTestCase):
         field = fields.DateTime()
 
         self.assertIsInstance(
-            (yield field.to_python('2015-07-13T14:08:12')),
+            (yield field.to_python('2015-07-13T14:08:12.000000')),
             datetime.datetime
         )
 
