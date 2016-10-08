@@ -4,7 +4,6 @@ from unittest import mock
 import urllib
 
 import tornado.web
-import tornado.gen
 
 import monstro.testing
 from monstro.forms import String
@@ -15,6 +14,7 @@ from monstro.views import (
     RedirectView, DeleteView
 )
 from monstro.views.authentication import CookieAuthentication
+
 
 class User(Model):
 

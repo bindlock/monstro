@@ -1,9 +1,5 @@
 # coding=utf-8
 
-import tornado.gen
-import tornado.testing
-import tornado.ioloop
-
 import monstro.testing
 
 from monstro.forms import fields, forms, exceptions
@@ -41,31 +37,27 @@ class FormTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(instance.string, 'test')
 
-    @tornado.testing.gen_test
     def test_getattr__attribute_error(self):
         with self.assertRaises(AttributeError):
             TestForm().none()
 
-    @tornado.testing.gen_test
-    def test_validate(self):
+    async def test_validate(self):
         instance = TestForm(data={'number': '1'})
 
-        yield instance.validate()
+        await instance.validate()
 
         self.assertEqual(instance.number, 1)
 
-    @tornado.testing.gen_test
-    def test_validate__error(self):
+    async def test_validate__error(self):
         instance = TestForm(data={'string': 1})
 
         with self.assertRaises(exceptions.ValidationError) as context:
-            yield instance.validate()
+            await instance.validate()
 
         self.assertIn('string', context.exception.error)
         self.assertIn('string', instance.__errors__)
 
-    @tornado.testing.gen_test
-    def test_get_metadata(self):
+    async def test_get_metadata(self):
         instance = TestForm()
 
         self.assertEqual(
@@ -80,33 +72,29 @@ class FormTest(monstro.testing.AsyncTestCase):
                     'attrs': {'type': 'text'},
                     'tag': 'input',
                 }
-            }, (yield instance.get_metadata())[0]
+            }, (await instance.get_metadata())[0]
         )
 
-    @tornado.testing.gen_test
-    def test_serialize(self):
-        instance = yield TestForm(data={'number': '1'}).to_python()
+    async def test_serialize(self):
+        instance = await TestForm(data={'number': '1'}).to_python()
 
         self.assertEqual(
-            {'number': 1, 'string': 'default'}, (yield instance.serialize())
+            {'number': 1, 'string': 'default'}, (await instance.serialize())
         )
 
-    @tornado.testing.gen_test
-    def test_save(self):
-        yield TestForm(data={'string': '1'}).save()
+    async def test_save(self):
+        await TestForm(data={'string': '1'}).save()
 
-    @tornado.testing.gen_test
-    def test_to_python(self):
-        instance = yield TestForm(data={'number': '1'}).to_python()
+    async def test_to_python(self):
+        instance = await TestForm(data={'number': '1'}).to_python()
 
         self.assertEqual(1, instance.number)
 
-    @tornado.testing.gen_test
-    def test__read_only(self):
+    async def test__read_only(self):
         instance = TestForm(data={'string': '1'})
 
         with self.assertRaises(exceptions.ValidationError) as context:
-            yield instance.validate()
+            await instance.validate()
 
         self.assertEqual(
             instance.__fields__['string'].error_messages['read_only'],

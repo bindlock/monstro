@@ -7,7 +7,7 @@ import motor.motor_tornado
 from monstro.conf import settings
 from monstro.core.constants import MONGODB_URI_ENVIRONMENT_VARIABLE
 
-from . import utils
+from . import proxy
 
 
 def get_client(**kwargs):
@@ -19,8 +19,8 @@ def get_client(**kwargs):
         **client_settings
     )
 
-    return utils.MotorProxy(motor_client)
+    return proxy.MotorProxy(motor_client)
 
 
 client = get_client()
-database = client.get_default_database()
+database = proxy.MotorProxy(client.get_default_database())

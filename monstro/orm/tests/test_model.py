@@ -3,10 +3,6 @@
 import uuid
 import datetime
 
-import tornado.gen
-import tornado.testing
-import tornado.ioloop
-
 import monstro.testing
 from monstro.forms import fields
 from monstro.forms.exceptions import ValidationError
@@ -51,7 +47,6 @@ class ModelTest(monstro.testing.AsyncTestCase):
                 __collection__ = 'test'
                 _id = fields.Integer()
 
-    @tornado.testing.gen_test
     def test_getattr__attribute_error(self):
         class CustomModel(model.Model):
             __collection__ = 'test'
@@ -63,8 +58,7 @@ class ModelTest(monstro.testing.AsyncTestCase):
         with self.assertRaises(AttributeError):
             instance.none()
 
-    @tornado.testing.gen_test
-    def test_serialize(self):
+    async def test_serialize(self):
         class CustomModel(model.Model):
             __collection__ = 'test'
 
@@ -74,83 +68,77 @@ class ModelTest(monstro.testing.AsyncTestCase):
         instance.__valid__ = True
 
         self.assertEqual(
-            {'name': 'test', '_id': None}, (yield instance.serialize())
+            {'name': 'test', '_id': None}, await instance.serialize()
         )
 
-    @tornado.testing.gen_test
-    def test_save(self):
+    async def test_save(self):
         class CustomModel(model.Model):
             __collection__ = 'test'
 
             string = fields.String()
 
-        instance = yield CustomModel.objects.create(string=uuid.uuid4().hex)
+        instance = await CustomModel.objects.create(string=uuid.uuid4().hex)
 
-        _model = yield instance.objects.get(string=instance.string)
+        _model = await instance.objects.get(string=instance.string)
 
         self.assertEqual(instance.string, _model.string)
 
-    @tornado.testing.gen_test
-    def test_save__on_create(self):
+    async def test_save__on_create(self):
         class CustomModel(model.Model):
             __collection__ = 'test'
 
             datetime = fields.DateTime(auto_now_on_create=True)
 
-        instance = yield CustomModel.objects.create(string=uuid.uuid4().hex)
+        instance = await CustomModel.objects.create(string=uuid.uuid4().hex)
 
         self.assertIsInstance(instance.datetime, datetime.datetime)
 
-    @tornado.testing.gen_test
-    def test_update(self):
+    async def test_update(self):
         class CustomModel(model.Model):
             __collection__ = 'test'
 
             string = fields.String()
 
-        instance = yield CustomModel.objects.create(string=uuid.uuid4().hex)
+        instance = await CustomModel.objects.create(string=uuid.uuid4().hex)
 
-        yield instance.update(string='test')
+        await instance.update(string='test')
 
         self.assertEqual('test', instance.string)
 
-    @tornado.testing.gen_test
-    def test_refresh(self):
+    async def test_refresh(self):
         class CustomModel(model.Model):
             __collection__ = 'test'
 
             string = fields.String()
 
-        instance = yield CustomModel.objects.create(string=uuid.uuid4().hex)
+        instance = await CustomModel.objects.create(string=uuid.uuid4().hex)
 
-        _instance = yield CustomModel.objects.get(_id=instance._id)
-        yield _instance.update(string=uuid.uuid4().hex)
+        _instance = await CustomModel.objects.get(_id=instance._id)
+        await _instance.update(string=uuid.uuid4().hex)
 
         self.assertEqual(instance._id, _instance._id)
         self.assertNotEqual(instance.string, _instance.string)
 
-        yield instance.refresh()
+        await instance.refresh()
 
         self.assertEqual(instance.string, _instance.string)
 
-    @tornado.testing.gen_test
-    def test_resave(self):
+    async def test_resave(self):
         class CustomModel(model.Model):
             __collection__ = 'test'
 
             string = fields.String()
 
-        instance = yield CustomModel.objects.create(string=uuid.uuid4().hex)
+        instance = await CustomModel.objects.create(string=uuid.uuid4().hex)
 
         instance.string = uuid.uuid4().hex
-        yield instance.save()
+        await instance.save()
 
-        _model = yield instance.objects.get(string=instance.string)
+        _model = await instance.objects.get(string=instance.string)
 
         self.assertEqual(instance.string, _model.string)
 
-    @tornado.testing.gen_test
-    def test_construct(self):
+    async def test_construct(self):
         class RelatedModel(model.Model):
             __collection__ = 'test2'
 
@@ -164,20 +152,19 @@ class ModelTest(monstro.testing.AsyncTestCase):
                 related_model=RelatedModel, related_field='name'
             )
 
-        related_model = yield RelatedModel.objects.create(
+        related_model = await RelatedModel.objects.create(
             name=uuid.uuid4().hex
         )
 
-        instance = yield CustomModel.objects.create(
+        instance = await CustomModel.objects.create(
             string=uuid.uuid4().hex, related=related_model
         )
 
-        instance = yield instance.objects.get(string=instance.string)
+        instance = await instance.objects.get(string=instance.string)
 
         self.assertEqual(related_model.name, instance.related.name)
 
-    @tornado.testing.gen_test
-    def test_validate(self):
+    async def test_validate(self):
         class FirstModel(model.Model):
             __collection__ = 'test2'
 
@@ -195,11 +182,11 @@ class ModelTest(monstro.testing.AsyncTestCase):
             name = fields.String()
             related = ForeignKey(related_model=SecondModel)
 
-        first = yield FirstModel.objects.create(name=uuid.uuid4().hex)
-        second = yield SecondModel.objects.create(
+        first = await FirstModel.objects.create(name=uuid.uuid4().hex)
+        second = await SecondModel.objects.create(
             name=uuid.uuid4().hex, related=first
         )
-        third = yield ThirdModel.objects.create(
+        third = await ThirdModel.objects.create(
             name=uuid.uuid4().hex, related=second
         )
 
@@ -210,53 +197,49 @@ class ModelTest(monstro.testing.AsyncTestCase):
         second.related = 'wrong'
 
         with self.assertRaises(ValidationError) as context:
-            yield second.save()
+            await second.save()
 
         self.assertIn('related', context.exception.error)
 
         try:
-            yield second.save()
+            await second.save()
         except ValidationError as e:
             self.assertIn('related', e.error)
 
-    @tornado.testing.gen_test
-    def test_validate__unique(self):
+    async def test_validate__unique(self):
 
         class CustomModel(model.Model):
             __collection__ = 'test'
 
             string = fields.String(unique=True)
 
-        instance = yield CustomModel.objects.create(string=uuid.uuid4().hex)
+        instance = await CustomModel.objects.create(string=uuid.uuid4().hex)
 
         with self.assertRaises(ValidationError) as context:
-            yield CustomModel.objects.create(string=instance.string)
+            await CustomModel.objects.create(string=instance.string)
 
         self.assertEqual(
             context.exception.error['string'],
             fields.Field.default_error_messages['unique']
         )
 
-    @tornado.testing.gen_test
-    def test_delete(self):
+    async def test_delete(self):
         class CustomModel(model.Model):
             __collection__ = 'test'
 
             string = fields.String()
 
-        instance = yield CustomModel.objects.create(string=uuid.uuid4().hex)
-        yield instance.delete()
+        instance = await CustomModel.objects.create(string=uuid.uuid4().hex)
+        await instance.delete()
 
         with self.assertRaises(instance.DoesNotExist):
-            yield instance.objects.get(string=instance.string)
+            await instance.objects.get(string=instance.string)
 
-    @tornado.testing.gen_test
-    def test_custom_manager(self):
+    async def test_custom_manager(self):
         class CustomManager(manager.Manager):
 
-            @tornado.gen.coroutine
-            def create(self, **kwargs):
-                raise tornado.gen.Return(None)
+            async def create(self, **kwargs):
+                return None
 
         class CustomModel(model.Model):
             __collection__ = 'test'
@@ -264,6 +247,6 @@ class ModelTest(monstro.testing.AsyncTestCase):
 
             string = fields.String()
 
-        instance = yield CustomModel.objects.create()
+        instance = await CustomModel.objects.create()
 
         self.assertFalse(instance)

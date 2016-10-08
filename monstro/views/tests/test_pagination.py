@@ -1,8 +1,5 @@
 # coding=utf-8
 
-import tornado.web
-import tornado.gen
-
 import monstro.testing
 from monstro.forms import String
 from monstro.orm import Model
@@ -44,32 +41,29 @@ class PaginationTest(monstro.testing.AsyncTestCase):
         with self.assertRaises(NotImplementedError):
             pagination.get_limit()
 
-    @tornado.testing.gen_test
-    def test_serialize(self):
+    async def test_serialize(self):
         pagination = Pagination()
 
-        self.assertEqual(1, (yield pagination.serialize(1)))
+        self.assertEqual(1, await pagination.serialize(1))
 
-    @tornado.testing.gen_test
-    def test_serialize__serializer(self):
+    async def test_serialize__serializer(self):
         pagination = Pagination(self.TestModel)
         instance = self.TestModel(data={'value': 'test'})
         instance.__valid__ = True
 
         self.assertEqual(
             {'value': 'test', '_id': None},
-            (yield pagination.serialize(instance))
+            await pagination.serialize(instance)
         )
 
-    @tornado.testing.gen_test
-    def test_serialize__other_serializer(self):
+    async def test_serialize__other_serializer(self):
         pagination = Pagination(self.TestModel)
         instance = User(data={'value': 'test'})
         instance.__valid__ = True
 
         self.assertEqual(
             {'value': 'test', '_id': None},
-            (yield pagination.serialize(instance))
+            await pagination.serialize(instance)
         )
 
 
@@ -102,15 +96,14 @@ class PageNumberPaginationTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(1, pagination.get_limit())
 
-    @tornado.testing.gen_test
-    def test_paginate(self):
+    async def test_paginate(self):
         pagination = PageNumberPagination()
         pagination.bind(page=1, count=1)
 
         for i in range(5):
-            yield self.TestModel.objects.create(value=str(i))
+            await self.TestModel.objects.create(value=str(i))
 
-        data = yield pagination.paginate(self.TestModel.objects.filter())
+        data = await pagination.paginate(self.TestModel.objects.filter())
 
         self.assertEqual(1, data['pages']['current'])
         self.assertEqual(2, data['pages']['next'])
@@ -148,15 +141,14 @@ class LimitOffsetPaginationTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(3, pagination.get_limit())
 
-    @tornado.testing.gen_test
-    def test_paginate(self):
+    async def test_paginate(self):
         pagination = LimitOffsetPagination()
         pagination.bind(limit=1, offset=2)
 
         for i in range(5):
-            yield self.TestModel.objects.create(value=str(i))
+            await self.TestModel.objects.create(value=str(i))
 
-        data = yield pagination.paginate(self.TestModel.objects.filter())
+        data = await pagination.paginate(self.TestModel.objects.filter())
 
         self.assertEqual(3, data['pages']['current'])
         self.assertEqual(2, data['pages']['previous'])

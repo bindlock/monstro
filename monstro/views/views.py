@@ -1,7 +1,6 @@
 # coding=utf-8
 
 import tornado.web
-import tornado.gen
 
 from . import mixins
 

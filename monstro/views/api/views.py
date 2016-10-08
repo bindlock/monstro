@@ -3,7 +3,6 @@
 import json
 
 import tornado.web
-import tornado.gen
 
 from monstro.views import views, mixins, pagination
 
@@ -47,9 +46,8 @@ class APIView(views.View):
             'details': details or {'request_error': self._reason}
         })
 
-    @tornado.gen.coroutine
-    def prepare(self):
-        yield super().prepare()
+    async def prepare(self):
+        await super().prepare()
 
         self.query = self.request.GET
 
@@ -63,14 +61,14 @@ class APIView(views.View):
                 self.form = self.form_class(data=self.data)
 
                 try:
-                    yield self.form.validate()
+                    await self.form.validate()
                 except self.form.ValidationError as e:
                     if isinstance(e.error, str):
                         return self.send_error(400, reason=e.error)
 
                     return self.send_error(400, details=e.error)
 
-                self.data = yield self.form.serialize()
+                self.data = await self.form.serialize()
                 self.data.pop('_id', None)
 
 
@@ -123,12 +121,11 @@ class ModelAPIView(mixins.ListResponseMixin,
     def get_form_class(self):
         return super().get_form_class() or self.model
 
-    @tornado.gen.coroutine
-    def get(self, *args, **kwargs):
+    async def get(self, *args, **kwargs):
         if self.path_kwargs.get(self.lookup_field):
-            instance = yield self.get_object()
+            instance = await self.get_object()
             form = self.form_class(instance=instance)
 
-            return self.finish((yield form.serialize()))
+            return self.finish(await form.serialize())
 
-        return self.finish((yield self.paginate()))
+        return self.finish(await self.paginate())

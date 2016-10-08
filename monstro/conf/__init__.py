@@ -3,7 +3,6 @@
 import os
 import importlib
 
-import tornado.gen
 import tornado.ioloop
 from tornado.util import import_object
 

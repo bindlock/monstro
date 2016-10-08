@@ -6,8 +6,10 @@ import argparse
 import importlib
 
 from tornado.util import import_object
+
 from monstro.core.constants import (
-    SETTINGS_ENVIRONMENT_VARIABLE, MONGODB_URI_ENVIRONMENT_VARIABLE
+    SETTINGS_ENVIRONMENT_VARIABLE,
+    MONGODB_URI_ENVIRONMENT_VARIABLE
 )
 
 

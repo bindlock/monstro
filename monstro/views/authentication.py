@@ -1,7 +1,5 @@
 # coding=utf-8
 
-import tornado.gen
-
 
 class Authentication(object):
 
@@ -18,8 +16,7 @@ class ModelAuthenticationMixin(object):
         self.model = model
         self.lookup_field = lookup_field
 
-    @tornado.gen.coroutine
-    def authenticate(self, view):
+    async def authenticate(self, view):
         credentials = self.get_credentials(view)
 
         if not credentials:
@@ -28,7 +25,7 @@ class ModelAuthenticationMixin(object):
         get_kwargs = {self.lookup_field: credentials}
 
         try:
-            return (yield self.model.objects.get(**get_kwargs))
+            return await self.model.objects.get(**get_kwargs)
         except self.model.DoesNotExist:
             return None
 

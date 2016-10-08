@@ -1,17 +1,16 @@
 # coding=utf-8
 
-import tornado.gen
-import tornado.ioloop
+import asyncio
 
-from tornado.testing import gen_test  # shortcut for import
+import tornado.ioloop
+import tornado.testing
 
 from monstro.orm import db
 
 
 __all__ = (
     'AsyncTestCase',
-    'AsyncHTTPTestCase',
-    'gen_test'
+    'AsyncHTTPTestCase'
 )
 
 
@@ -26,6 +25,10 @@ class AsyncTestCaseMixin(object):
     def run_sync(self, function, *args, **kwargs):
         return self.io_loop.run_sync(lambda: function(*args, **kwargs))
 
+    async def tearDown(self):
+        if self.drop_database_every_test:
+            await db.client.drop_database(db.database.name)
+
     @classmethod
     def tearDownClass(cls):
         if cls.drop_database_on_finish:
@@ -34,42 +37,28 @@ class AsyncTestCaseMixin(object):
 
         super().tearDownClass()
 
+    def async_method_wrapper(self, function):
+        def wrapper(*args, **kwargs):
+            return self.get_new_ioloop().run_sync(
+                lambda: function(*args, **kwargs)
+            )
+
+        return wrapper
+
+    def __getattribute__(self, item):
+        attribute = object.__getattribute__(self, item)
+
+        if asyncio.iscoroutinefunction(attribute):
+            return self.async_method_wrapper(attribute)
+
+        return attribute
+
 
 class AsyncTestCase(AsyncTestCaseMixin, tornado.testing.AsyncTestCase):
 
-    def setUp(self):
-        super().setUp()
-        self.setUpAsync()
-
-    def tearDown(self):
-        self.tearDownAsync()
-        super().tearDown()
-
-    @tornado.testing.gen_test
-    def setUpAsync(self):
-        pass
-
-    @tornado.testing.gen_test
-    def tearDownAsync(self):
-        if self.drop_database_every_test:
-            yield db.client.drop_database(db.database.name)
+    pass
 
 
 class AsyncHTTPTestCase(AsyncTestCaseMixin, tornado.testing.AsyncHTTPTestCase):
 
-    def setUp(self):
-        super().setUp()
-        self.io_loop.run_sync(self.setUpAsync)
-
-    def tearDown(self):
-        self.io_loop.run_sync(self.tearDownAsync)
-        super().tearDown()
-
-    @tornado.gen.coroutine
-    def setUpAsync(self):
-        pass
-
-    @tornado.gen.coroutine
-    def tearDownAsync(self):
-        if self.drop_database_every_test:
-            yield db.client.drop_database(db.database.name)
+    pass
