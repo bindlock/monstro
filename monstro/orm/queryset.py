@@ -1,8 +1,14 @@
 # coding=utf-8
 
+import copy
+import logging
+
 import pymongo
 
 from . import db, exceptions
+
+
+logger = logging.getLogger('monstro')
 
 
 class QuerySet(object):
@@ -18,6 +24,10 @@ class QuerySet(object):
         self._collection = collection
 
         self._cursor = None
+        self._validated = False
+
+    def __getattr__(self, attribute):
+        return getattr(self.clone().cursor, attribute)
 
     @property
     def cursor(self):
@@ -56,6 +66,9 @@ class QuerySet(object):
         return self.clone()
 
     async def __anext__(self):
+        if not self._validated:
+            await self.validate_query()
+
         if await self.cursor.fetch_next:
             return await self.model(data=self.cursor.next_object()).to_python()
 
@@ -63,29 +76,35 @@ class QuerySet(object):
 
     def clone(self, **kwargs):
         kwargs.setdefault('model', self.model)
-        kwargs.setdefault('query', self.query)
+        kwargs.setdefault('query', copy.deepcopy(self.query))
         kwargs.setdefault('offset', self.offset)
         kwargs.setdefault('limit', self.limit)
-        kwargs.setdefault('sorts', self._sorts)
+        kwargs.setdefault('sorts', copy.copy(self._sorts))
         kwargs.setdefault('collection', self._collection)
         return QuerySet(**kwargs)
 
     async def validate_query(self):
         for key, value in self.query.items():
+            if isinstance(value, dict):
+                if all(k.startswith('$') for k in value):
+                    continue
+
             try:
                 field = self.model.__fields__[key]
-                value = await field.to_python(value)
+                value = await field.to_python(copy.deepcopy(value))
 
                 if key != '_id':
                     value = await field.to_internal_value(value)
             except self.model.ValidationError as e:
-                raise exceptions.InvalidQuery(str(e))
+                logger.warning('Invalid query: {}'.format(e))
             except KeyError:
                 raise exceptions.InvalidQuery(
                     '{} has not field {}'.format(self.model, key)
                 )
 
             self.query[key] = value
+
+        self._validated = True
 
         return self.query
 
