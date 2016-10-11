@@ -93,9 +93,11 @@ class ForeignKey(Field):
 
     async def get_metadata(self):
         choices = []
+        model = self.get_related_model()
 
-        async for item in self.get_related_model().objects.all():
-            choices.append((str(getattr(item, self.related_field)), str(item)))
+        async for item in model.objects.values():
+            instance = model(data=item)
+            choices.append((str(item.get(self.related_field)), str(instance)))
 
         self.widget = widgets.Select(choices)
 

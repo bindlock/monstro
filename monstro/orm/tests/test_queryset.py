@@ -141,3 +141,18 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(self.number, await queryset.count())
         self.assertEqual(self.number, len(items))
+
+    async def test_only(self):
+        queryset = self.model.objects.only('name')
+
+        async for item in queryset:
+            self.assertEqual(None, item.age)
+
+    async def test_values(self):
+        queryset = self.model.objects.values()
+
+        async for item in queryset:
+            self.assertIsInstance(item, dict)
+            self.assertIn('_id', item)
+            self.assertIn('name', item)
+            self.assertIn('age', item)

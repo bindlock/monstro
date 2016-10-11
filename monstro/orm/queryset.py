@@ -14,15 +14,17 @@ logger = logging.getLogger('monstro')
 class QuerySet(object):
 
     def __init__(self, model, query=None, offset=0, limit=0,
-                 sorts=None, collection=None):
+                 fields=None, sorts=None, collection=None, raw=False):
         self.model = model
         self.query = query or {}
         self.offset = offset
         self.limit = limit
 
+        self.fields = fields
         self._sorts = sorts or []
         self._collection = collection
 
+        self.raw = raw
         self._cursor = None
         self._validated = False
 
@@ -33,7 +35,8 @@ class QuerySet(object):
     def cursor(self):
         if not self._cursor:
             self._cursor = self.collection.find(
-                self.query, skip=self.offset, limit=self.limit, sort=self.sorts
+                self.query, skip=self.offset, limit=self.limit,
+                fields=self.fields or None, sort=self.sorts
             )
 
         return self._cursor
@@ -62,7 +65,10 @@ class QuerySet(object):
 
         return self._collection
 
-    def __aiter__(self):
+    async def __aiter__(self):
+        if self.raw:
+            return await self.clone().cursor.__aiter__()
+
         return self.clone()
 
     async def __anext__(self):
@@ -79,19 +85,21 @@ class QuerySet(object):
         kwargs.setdefault('query', copy.deepcopy(self.query))
         kwargs.setdefault('offset', self.offset)
         kwargs.setdefault('limit', self.limit)
+        kwargs.setdefault('fields', copy.copy(self.fields))
         kwargs.setdefault('sorts', copy.copy(self._sorts))
+        kwargs.setdefault('raw', copy.copy(self.raw))
         kwargs.setdefault('collection', self._collection)
         return QuerySet(**kwargs)
 
     async def validate_query(self):
         for key, value in self.query.items():
             if isinstance(value, dict):
-                if all(k.startswith('$') for k in value):
+                if any(key.startswith('$') for key in value):
                     continue
 
             try:
                 field = self.model.__fields__[key]
-                value = await field.to_python(copy.deepcopy(value))
+                value = await field.to_python(value)
 
                 if key != '_id':
                     value = await field.to_internal_value(value)
@@ -114,7 +122,15 @@ class QuerySet(object):
         return self.clone(query=_query)
 
     def order_by(self, *fields):
-        return self.clone(sorts=self.sorts + list(fields))
+        return self.clone(sorts=self._sorts + list(fields))
+
+    def only(self, *fields):
+        return self.clone(fields=(self.fields or []) + list(fields))
+
+    def values(self, *fields):
+        queryset = self.only(*fields)
+        queryset.raw = True
+        return queryset
 
     async def count(self):
         return await self.clone().cursor.count(True)

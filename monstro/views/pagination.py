@@ -23,14 +23,16 @@ class Pagination(object):
     def get_limit(self):
         raise NotImplementedError()
 
-    async def serialize(self, instance):
+    async def serialize(self, item):
         if self.serializer:
-            if isinstance(instance, self.serializer):
-                return await instance.serialize()
+            if isinstance(item, self.serializer):
+                return await item.serialize()
+            elif isinstance(item, dict):
+                return self.serializer(data=item).get_values()
 
-            return await self.serializer(instance=instance).serialize()
+            return await self.serializer(instance=item).serialize()
 
-        return instance
+        return item
 
     async def paginate(self, queryset):
         offset = self.get_offset()

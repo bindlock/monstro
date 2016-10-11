@@ -1,13 +1,9 @@
 # coding=utf-8
 
-import logging
 import collections
 
 from . import exceptions
 from .fields import Field
-
-
-logger = logging.getLogger('monstro')
 
 
 class MetaForm(type):
@@ -44,7 +40,6 @@ class MetaForm(type):
 class Form(object, metaclass=MetaForm):
 
     def __init__(self, *, instance=None, data=None):
-        self.__valid__ = True
         self.__instance__ = instance
         self.__values__ = {name: None for name in self.__fields__.keys()}
 
@@ -55,8 +50,6 @@ class Form(object, metaclass=MetaForm):
         if data is not None:
             for name in self.__fields__.keys():
                 self.__values__[name] = data.get(name, self.__values__[name])
-
-            self.__valid__ = False
 
     def __getattr__(self, attribute):
         if attribute in self.__fields__:
@@ -80,16 +73,29 @@ class Form(object, metaclass=MetaForm):
 
         return metadata
 
+    def get_values(self):
+        values = {}
+
+        for name in self.__fields__:
+            values[name] = self.__values__.get(name)
+
+            if name == '_id':
+                values[name] = str(values[name])
+
+        return values
+
     async def to_python(self):
         for name, field in self.__fields__.items():
             value = self.__values__.get(name)
+
+            if value is None:
+                self.__values__[name] = field.default
+                continue
 
             try:
                 self.__values__[name] = await field.to_python(value)
             except exceptions.ValidationError:
                 self.__values__[name] = field.default
-
-        self.__valid__ = True
 
         return self
 
@@ -111,15 +117,9 @@ class Form(object, metaclass=MetaForm):
         if self.__errors__:
             raise exceptions.ValidationError(self.__errors__)
 
-        self.__valid__ = True
-
         return self
 
     async def serialize(self):
-        assert self.__valid__, (
-            'You cannot call .serialize() before call .validate()'
-        )
-
         data = {}
 
         for name, field in self.__fields__.items():
