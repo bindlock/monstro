@@ -20,6 +20,11 @@ class FieldTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(None, await field.to_internal_value(None))
 
+    def test_create_label_from_name(self):
+        field = fields.Field(name='some_field')
+
+        self.assertEqual('Some field', field.label)
+
     def test_callable_default(self):
         field = fields.Integer(default=lambda: 1 + 1)
 

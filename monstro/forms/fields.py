@@ -57,7 +57,7 @@ class Field(object):
         self.name = name
         self.required = required
         self._default = default
-        self.label = label
+        self._label = label
         self.unique = unique
         self.help_text = help_text
         self.read_only = read_only
@@ -75,6 +75,13 @@ class Field(object):
         messages.update(error_messages or {})
 
         self.error_messages = messages
+
+    @property
+    def label(self):
+        if self._label is None and self.name is not None:
+            self._label = ' '.join(re.split(r'[\W_]', self.name)).capitalize()
+
+        return self._label
 
     @property
     def default(self):
