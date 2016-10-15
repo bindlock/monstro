@@ -10,6 +10,13 @@ from monstro.forms.fields import *  # pylint: disable=W0401,W0614
 from .exceptions import InvalidQuery
 
 
+__all__ = (
+    'Id',
+    'ForeignKey',
+    'ManyToMany'
+)
+
+
 class Id(Field):
 
     widget = widgets.Input('hidden')
@@ -107,3 +114,18 @@ class ForeignKey(Field):
         self.widget = widgets.Select(choices)
 
         return await super().get_options()
+
+
+class ManyToMany(Array):
+
+    def __init__(self, **kwargs):
+        super().__init__(field=ForeignKey(**kwargs))  # pylint: disable=E1125
+
+    async def get_options(self):
+        options = await super().get_options()
+
+        widget = (await self.field.get_options())['widget']
+        widget['attrs']['multiple'] = 'multiple'
+        options['widget'] = widget
+
+        return options

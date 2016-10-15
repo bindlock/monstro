@@ -9,7 +9,7 @@ from monstro.forms import fields
 from monstro.forms.exceptions import ValidationError
 
 from monstro.orm import model
-from monstro.orm.fields import ForeignKey, Id
+from monstro.orm.fields import ForeignKey, Id, ManyToMany
 
 
 class TestModel(model.Model):
@@ -191,4 +191,54 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             name, (await field.get_options())['widget']['options'][0]['label']
+        )
+
+
+class ManyToManyTest(monstro.testing.AsyncTestCase):
+
+    async def setUp(self):
+        super().setUp()
+
+        class Test(model.Model):
+
+            __collection__ = uuid.uuid4().hex
+
+            name = fields.String()
+
+            def __str__(self):
+                return self.name
+
+        self.model = Test
+
+    async def test_validate(self):
+        field = ManyToMany(to=self.model)
+        instances = [
+            await self.model.objects.create(name=uuid.uuid4().hex),
+            await self.model.objects.create(name=uuid.uuid4().hex)
+        ]
+
+        self.assertEqual(instances, await field.validate(instances))
+
+    async def test_to_internal_value(self):
+        field = ManyToMany(to=self.model, to_field='name')
+        instances = [
+            await self.model.objects.create(name=uuid.uuid4().hex),
+            await self.model.objects.create(name=uuid.uuid4().hex)
+        ]
+
+        self.assertEqual(
+            [instance.name for instance in instances],
+            await field.to_internal_value(instances)
+        )
+
+    async def test_get_options(self):
+        field = ManyToMany(to=self.model)
+        instances = [
+            await self.model.objects.create(name=uuid.uuid4().hex),
+            await self.model.objects.create(name=uuid.uuid4().hex)
+        ]
+
+        self.assertEqual(
+            [{'value': str(i._id), 'label': i.name} for i in instances],
+            (await field.get_options())['widget']['options']
         )
