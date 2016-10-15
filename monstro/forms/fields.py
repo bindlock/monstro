@@ -20,7 +20,7 @@ __all__ = (
     'Choice',
     'Array',
     'MultipleChoice',
-    'Url',
+    'URL',
     'RegexMatch',
     'Host',
     'Slug',
@@ -341,7 +341,7 @@ class MultipleChoice(Array, Choice):
         return value
 
 
-class Url(String):
+class URL(String):
 
     default_error_messages = {
         'url': 'Value must be a valid URL',
@@ -403,19 +403,28 @@ class Map(Field):
 
     widget = widgets.TextArea()
     default_error_messages = {
-        'invalid': 'Value must be a map or JSON string',
+        'invalid': 'Value must be a map',
     }
 
     async def to_python(self, value):
-        if isinstance(value, str):
-            try:
-                value = json.loads(value)
-            except (ValueError, TypeError):
-                self.fail('invalid')
-        elif not isinstance(value, dict):
+        if not isinstance(value, dict):
             self.fail('invalid')
 
         return value
+
+
+class JSON(Field):
+
+    widget = widgets.TextArea()
+    default_error_messages = {
+        'invalid': 'Value must be a valid JSON string',
+    }
+
+    async def to_python(self, value):
+        try:
+            return json.loads(value)
+        except (ValueError, TypeError):
+            self.fail('invalid')
 
 
 class DateTime(Field):

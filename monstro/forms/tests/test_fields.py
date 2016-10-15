@@ -353,17 +353,17 @@ class ArrayTest(monstro.testing.AsyncTestCase):
         self.assertEqual([1], await field.to_internal_value([1]))
 
 
-class UrlTest(monstro.testing.AsyncTestCase):
+class URLTest(monstro.testing.AsyncTestCase):
 
     async def test_validate(self):
-        field = fields.Url()
+        field = fields.URL()
         self.assertEqual(
             'https://pyvim.com/about/',
             await field.validate('https://pyvim.com/about/')
         )
 
     async def test_validate__invalid_type(self):
-        field = fields.Url(default=5)
+        field = fields.URL(default=5)
 
         with self.assertRaises(exceptions.ValidationError) as context:
             await field.validate()
@@ -374,14 +374,14 @@ class UrlTest(monstro.testing.AsyncTestCase):
         )
 
     async def test_validate__invalid(self):
-        field = fields.Url(default=':/wrong')
+        field = fields.URL(default=':/wrong')
 
         with self.assertRaises(exceptions.ValidationError) as context:
             await field.validate()
 
         self.assertEqual(
             context.exception.error,
-            fields.Url.default_error_messages['url']
+            fields.URL.default_error_messages['url']
         )
 
 
@@ -428,17 +428,6 @@ class MapTest(monstro.testing.AsyncTestCase):
             {'key': 'value'}, await field.validate({'key': 'value'})
         )
 
-    async def test_validate__invalid_json(self):
-        field = fields.Map(default='wrong')
-
-        with self.assertRaises(exceptions.ValidationError) as context:
-            await field.validate()
-
-        self.assertEqual(
-            context.exception.error,
-            fields.Map.default_error_messages['invalid'].format(field)
-        )
-
     async def test_validate__invalid_type(self):
         field = fields.Map(default=5)
 
@@ -448,6 +437,26 @@ class MapTest(monstro.testing.AsyncTestCase):
         self.assertEqual(
             context.exception.error,
             fields.Map.default_error_messages['invalid'].format(field)
+        )
+
+
+class JSONTest(monstro.testing.AsyncTestCase):
+
+    async def test_validate(self):
+        field = fields.JSON()
+        self.assertEqual(
+            {'key': 'value'}, await field.validate('{"key": "value"}')
+        )
+
+    async def test_validate__invalid_type(self):
+        field = fields.JSON()
+
+        with self.assertRaises(exceptions.ValidationError) as context:
+            await field.validate(5)
+
+        self.assertEqual(
+            context.exception.error,
+            fields.JSON.default_error_messages['invalid'].format(field)
         )
 
 

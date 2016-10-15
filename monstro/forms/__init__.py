@@ -10,11 +10,12 @@ from .fields import (
     Choice,
     Array,
     MultipleChoice,
-    Url,
+    URL,
     RegexMatch,
     Host,
     Slug,
     Map,
+    JSON,
     Date,
     Time,
     DateTime
