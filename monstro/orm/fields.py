@@ -118,8 +118,9 @@ class ForeignKey(Field):
 
 class ManyToMany(Array):
 
-    def __init__(self, **kwargs):
-        super().__init__(field=ForeignKey(**kwargs))  # pylint: disable=E1125
+    def __init__(self, *, to, to_field='_id', **kwargs):
+        field = ForeignKey(to=to, to_field=to_field)
+        super().__init__(field=field, **kwargs)
 
     async def get_options(self):
         options = await super().get_options()
