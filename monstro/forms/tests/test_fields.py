@@ -2,8 +2,6 @@
 
 import datetime
 
-import tornado.gen
-
 import monstro.testing
 from monstro.utils import Choices
 
@@ -24,16 +22,6 @@ class FieldTest(monstro.testing.AsyncTestCase):
 
     def test_callable_default(self):
         field = fields.Integer(default=lambda: 1 + 1)
-
-        self.assertEqual(2, field.default)
-
-    def test_coroutine_default(self):
-
-        @tornado.gen.coroutine
-        def f():
-            return 1 + 1
-
-        field = fields.Integer(default=f)
 
         self.assertEqual(2, field.default)
 

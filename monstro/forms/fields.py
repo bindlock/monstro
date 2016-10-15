@@ -5,8 +5,6 @@ import json
 import datetime
 import urllib.parse
 
-import tornado.concurrent
-
 from . import widgets
 from .exceptions import ValidationError
 
@@ -78,6 +76,13 @@ class Field(object):
 
         self.error_messages = messages
 
+    @property
+    def default(self):
+        if callable(self._default):
+            return self._default()
+
+        return self._default
+
     def bind(self, **kwargs):
         self.__dict__.update(kwargs)
 
@@ -111,18 +116,6 @@ class Field(object):
         raise ValidationError(
             self.error_messages[error_code].format(self, **kwargs), self.name
         )
-
-    @property
-    def default(self):
-        if callable(self._default):
-            value = self._default()
-
-            if isinstance(value, tornado.concurrent.Future):
-                value = value.result()
-
-            return value
-
-        return self._default
 
     async def to_python(self, value):
         return value
