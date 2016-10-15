@@ -13,7 +13,7 @@ from .exceptions import InvalidQuery
 class Id(Field):
 
     widget = widgets.Input('hidden')
-    default_error_messages = {
+    error_messages = {
         'invalid': 'Value must be an valid MongoDB Id'
     }
 
@@ -38,7 +38,7 @@ class Id(Field):
 
 class ForeignKey(Field):
 
-    default_error_messages = {
+    error_messages = {
         'invalid': 'Model instance must be a {0.related_model.__name__}',
         'foreign_key': 'Related model not found'
     }

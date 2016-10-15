@@ -42,7 +42,7 @@ class IdTest(monstro.testing.AsyncTestCase):
             await field.to_python(object)
 
         self.assertEqual(
-            context.exception.error, Id.default_error_messages['invalid']
+            context.exception.error, Id.error_messages['invalid']
         )
 
     async def test_validate__error(self):
@@ -52,7 +52,7 @@ class IdTest(monstro.testing.AsyncTestCase):
             await field.validate()
 
         self.assertEqual(
-            context.exception.error, Id.default_error_messages['invalid']
+            context.exception.error, Id.error_messages['invalid']
         )
 
 
@@ -109,7 +109,7 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            ForeignKey.default_error_messages['foreign_key']
+            ForeignKey.error_messages['foreign_key']
         )
 
     async def test_to_python__from_string_id(self):
@@ -153,7 +153,7 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            ForeignKey.default_error_messages['foreign_key']
+            ForeignKey.error_messages['foreign_key']
         )
 
     async def test_validate__error_wrong_model(self):
@@ -167,7 +167,7 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            ForeignKey.default_error_messages['invalid'].format(field)
+            ForeignKey.error_messages['invalid'].format(field)
         )
 
     async def test_get_metadata(self):

@@ -34,7 +34,7 @@ __all__ = (
 class Field(object):
 
     widget = None
-    default_error_messages = {
+    error_messages = {
         'required': 'Value is required',
         'invalid': 'Value is invalid',
         'unique': 'Value must be unique',
@@ -53,7 +53,7 @@ class Field(object):
         :type default: type.
         :param validators (optional): additional validators.
         :type validators: iterable of callable.
-        :param error_messages (optional): custom error messages.
+        :param error_messages (optional): override default error messages.
         :type error_messages: dict.
         """
         self.name = name
@@ -72,7 +72,7 @@ class Field(object):
         messages = {}
 
         for cls in reversed(self.__class__.__mro__):
-            messages.update(getattr(cls, 'default_error_messages', {}))
+            messages.update(getattr(cls, 'error_messages', {}))
 
         messages.update(error_messages or {})
 
@@ -162,7 +162,7 @@ class Type(Field):
 
     type = type
     widget = widgets.Input('text')
-    default_error_messages = {
+    error_messages = {
         'invalid': 'Value must be a valid {0.type.__name__}'
     }
 
@@ -177,7 +177,7 @@ class Boolean(Type):
 
     type = bool
     widget = widgets.Input('checkbox')
-    default_error_messages = {
+    error_messages = {
         'invalid': 'Value must be a valid boolean'
     }
 
@@ -185,7 +185,7 @@ class Boolean(Type):
 class String(Type):
 
     type = str
-    default_error_messages = {
+    error_messages = {
         'invalid': 'Value must be a valid string',
         'min_length': 'String must be greater {0.min_length} characters',
         'max_length': 'String must be less {0.max_length} characters'
@@ -210,7 +210,7 @@ class String(Type):
 
 class Numeric(Type):
 
-    default_error_messages = {
+    error_messages = {
         'invalid': 'Value must be a valid integer or float',
         'min_value': 'Number must be greater {0.min_value} characters',
         'max_value': 'Number must be less {0.max_value} characters'
@@ -239,7 +239,7 @@ class Numeric(Type):
 class Integer(Numeric):
 
     type = int
-    default_error_messages = {
+    error_messages = {
         'invalid': 'Value must be a valid integer',
     }
 
@@ -247,14 +247,14 @@ class Integer(Numeric):
 class Float(Numeric):
 
     type = float
-    default_error_messages = {
+    error_messages = {
         'invalid': 'Value must be a valid float',
     }
 
 
 class Choice(Field):
 
-    default_error_messages = {
+    error_messages = {
         'invalid': 'Value must be in {choices}',
     }
 
@@ -281,7 +281,7 @@ class Array(Type):
 
     type = list
     widget = widgets.TextArea()
-    default_error_messages = {
+    error_messages = {
         'invalid': 'Value must be a valid array',
         'child': '{index}: {message}'
     }
@@ -320,7 +320,7 @@ class Array(Type):
 
 class MultipleChoice(Array, Choice):
 
-    default_error_messages = {
+    error_messages = {
         'choices': 'All values must be in {choices}',
     }
 
@@ -343,7 +343,7 @@ class MultipleChoice(Array, Choice):
 
 class URL(String):
 
-    default_error_messages = {
+    error_messages = {
         'url': 'Value must be a valid URL',
     }
 
@@ -360,7 +360,7 @@ class URL(String):
 
 class RegexMatch(String):
 
-    default_error_messages = {
+    error_messages = {
         'pattern': 'Value must match by {0.pattern}',
     }
 
@@ -379,7 +379,7 @@ class RegexMatch(String):
 
 class Host(RegexMatch):
 
-    default_error_messages = {
+    error_messages = {
         'pattern': 'Value must be a valid host',
     }
     pattern = (
@@ -393,7 +393,7 @@ class Host(RegexMatch):
 
 class Slug(RegexMatch):
 
-    default_error_messages = {
+    error_messages = {
         'pattern': 'Value must be a valid slug',
     }
     pattern = r'^[a-zA-Z\d\-_]+$'
@@ -402,7 +402,7 @@ class Slug(RegexMatch):
 class Map(Field):
 
     widget = widgets.TextArea()
-    default_error_messages = {
+    error_messages = {
         'invalid': 'Value must be a map',
     }
 
@@ -416,7 +416,7 @@ class Map(Field):
 class JSON(Field):
 
     widget = widgets.TextArea()
-    default_error_messages = {
+    error_messages = {
         'invalid': 'Value must be a valid JSON string',
     }
 
@@ -430,7 +430,7 @@ class JSON(Field):
 class DateTime(Field):
 
     widget = widgets.Input('datetime')
-    default_error_messages = {
+    error_messages = {
         'invalid': 'Datetime must be in next formats: {0.available_formats}'
     }
 
@@ -488,7 +488,7 @@ class DateTime(Field):
 class Date(DateTime):
 
     widget = widgets.Input('date')
-    default_error_messages = {
+    error_messages = {
         'invalid': 'Date must be in next formats: {0.available_formats}'
     }
 
@@ -501,7 +501,7 @@ class Date(DateTime):
 class Time(DateTime):
 
     widget = widgets.Input('time')
-    default_error_messages = {
+    error_messages = {
         'invalid': 'Time must be in next formats: {0.available_formats}'
     }
 

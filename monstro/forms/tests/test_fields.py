@@ -45,7 +45,7 @@ class FieldTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Integer.default_error_messages['invalid']
+            fields.Integer.error_messages['invalid']
         )
 
     async def test__validation_error_required(self):
@@ -56,7 +56,7 @@ class FieldTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Field.default_error_messages['required']
+            fields.Field.error_messages['required']
         )
 
     async def test_validation__validators(self):
@@ -99,7 +99,7 @@ class BooleanTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Boolean.default_error_messages['invalid']
+            fields.Boolean.error_messages['invalid']
         )
 
 
@@ -117,7 +117,7 @@ class StringTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.String.default_error_messages['invalid']
+            fields.String.error_messages['invalid']
         )
 
     async def test_validate__min_length(self):
@@ -128,7 +128,7 @@ class StringTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.String.default_error_messages['min_length'].format(
+            fields.String.error_messages['min_length'].format(
                 field
             )
         )
@@ -141,7 +141,7 @@ class StringTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.String.default_error_messages['max_length'].format(
+            fields.String.error_messages['max_length'].format(
                 field
             )
         )
@@ -166,7 +166,7 @@ class IntegerTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Integer.default_error_messages['invalid']
+            fields.Integer.error_messages['invalid']
         )
 
     async def test_validate__min_value(self):
@@ -177,7 +177,7 @@ class IntegerTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Numeric.default_error_messages['min_value'].format(
+            fields.Numeric.error_messages['min_value'].format(
                 field
             )
         )
@@ -190,7 +190,7 @@ class IntegerTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Numeric.default_error_messages['max_value'].format(
+            fields.Numeric.error_messages['max_value'].format(
                 field
             )
         )
@@ -210,7 +210,7 @@ class FloatTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Float.default_error_messages['invalid']
+            fields.Float.error_messages['invalid']
         )
 
     async def test_validate__min_value(self):
@@ -221,7 +221,7 @@ class FloatTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Numeric.default_error_messages['min_value'].format(
+            fields.Numeric.error_messages['min_value'].format(
                 field
             )
         )
@@ -234,7 +234,7 @@ class FloatTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Numeric.default_error_messages['max_value'].format(
+            fields.Numeric.error_messages['max_value'].format(
                 field
             )
         )
@@ -259,7 +259,7 @@ class ChoicesTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Choice.default_error_messages['invalid'].format(
+            fields.Choice.error_messages['invalid'].format(
                 choices=self.choices.values
             )
         )
@@ -284,7 +284,7 @@ class MultipleChoiceTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Array.default_error_messages['invalid'].format(field)
+            fields.Array.error_messages['invalid'].format(field)
         )
 
     async def test_validate__choices(self):
@@ -296,7 +296,7 @@ class MultipleChoiceTest(monstro.testing.AsyncTestCase):
         self.assertEqual(
             context.exception.error,
             fields.MultipleChoice \
-                .default_error_messages['choices'] \
+                .error_messages['choices'] \
                 .format(choices=self.choices.values)
         )
 
@@ -315,7 +315,7 @@ class ArrayTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Array.default_error_messages['invalid'].format(field)
+            fields.Array.error_messages['invalid'].format(field)
         )
 
     async def test_validate__invalid_item(self):
@@ -326,9 +326,9 @@ class ArrayTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Array.default_error_messages['child'].format(
+            fields.Array.error_messages['child'].format(
                 index=0,
-                message=fields.Integer.default_error_messages['invalid']
+                message=fields.Integer.error_messages['invalid']
             )
         )
 
@@ -370,7 +370,7 @@ class URLTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.String.default_error_messages['invalid']
+            fields.String.error_messages['invalid']
         )
 
     async def test_validate__invalid(self):
@@ -381,7 +381,7 @@ class URLTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.URL.default_error_messages['url']
+            fields.URL.error_messages['url']
         )
 
 
@@ -405,7 +405,7 @@ class HostTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.String.default_error_messages['invalid']
+            fields.String.error_messages['invalid']
         )
 
     async def test_validate__invalid(self):
@@ -416,7 +416,7 @@ class HostTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Host.default_error_messages['pattern'].format(field)
+            fields.Host.error_messages['pattern'].format(field)
         )
 
 
@@ -436,7 +436,7 @@ class MapTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Map.default_error_messages['invalid'].format(field)
+            fields.Map.error_messages['invalid'].format(field)
         )
 
 
@@ -456,7 +456,7 @@ class JSONTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.JSON.default_error_messages['invalid'].format(field)
+            fields.JSON.error_messages['invalid'].format(field)
         )
 
 
@@ -476,7 +476,7 @@ class SlugTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Slug.default_error_messages['pattern'].format(field)
+            fields.Slug.error_messages['pattern'].format(field)
         )
 
 
