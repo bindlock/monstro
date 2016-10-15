@@ -71,7 +71,7 @@ class FieldTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(context.exception.error, 1)
 
-    async def test_get_metadata(self):
+    async def test_get_options(self):
         field = fields.Field()
 
         self.assertEqual({
@@ -82,7 +82,7 @@ class FieldTest(monstro.testing.AsyncTestCase):
             'read_only': False,
             'default': None,
             'widget': None
-        }, await field.get_metadata())
+        }, await field.get_options())
 
 
 class BooleanTest(monstro.testing.AsyncTestCase):

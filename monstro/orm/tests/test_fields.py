@@ -170,17 +170,17 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
             ForeignKey.error_messages['invalid'].format(field)
         )
 
-    async def test_get_metadata(self):
+    async def test_get_options(self):
         for __ in range(3):
             await self.model.objects.create(name='test')
 
         field = ForeignKey(related_model=self.model, related_field='name')
 
         self.assertEqual(
-            4, len((await field.get_metadata())['widget']['options'])
+            4, len((await field.get_options())['widget']['options'])
         )
 
-    async def test_get_metadata__with_to_python(self):
+    async def test_get_options__with_to_python(self):
 
         class Model(model.Model):
 
@@ -198,5 +198,5 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
         field = ForeignKey(related_model=Model)
 
         self.assertEqual(
-            name, (await field.get_metadata())['widget']['options'][0]['label']
+            name, (await field.get_options())['widget']['options'][0]['label']
         )

@@ -65,11 +65,11 @@ class Form(object, metaclass=MetaForm):
             return super().__setattr__(attribute, value)
 
     @classmethod
-    async def get_metadata(cls):
+    async def get_options(cls):
         metadata = []
 
         for field in cls.__fields__.values():
-            metadata.append(await field.get_metadata())
+            metadata.append(await field.get_options())
 
         return metadata
 

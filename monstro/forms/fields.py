@@ -136,7 +136,7 @@ class Field(object):
     async def on_create(self, value):
         return value
 
-    async def get_metadata(self):
+    async def get_options(self):
         metadata = {
             'name': self.name,
             'label': self.label or (self.name and self.name.title()),
@@ -151,7 +151,7 @@ class Field(object):
             metadata['default'] = None
 
         if self.widget:
-            metadata['widget'] = self.widget.get_metadata()
+            metadata['widget'] = self.widget.get_options()
         else:
             metadata['widget'] = None
 

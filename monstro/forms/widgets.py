@@ -8,7 +8,7 @@ class Widget(object):
         self.value = value
         self.attributes = attributes or {}
 
-    def get_metadata(self):
+    def get_options(self):
         return {'tag': self.tag, 'attrs': self.attributes}
 
 
@@ -31,8 +31,8 @@ class Select(Widget):
         super().__init__('select', **kwargs)
         self.choices = choices
 
-    def get_metadata(self, *args, **kwargs):
-        data = super().get_metadata(*args, **kwargs)
+    def get_options(self, *args, **kwargs):
+        data = super().get_options(*args, **kwargs)
         data['options'] = [
             dict(zip(('value', 'label'), choice)) for choice in self.choices
         ]

@@ -57,7 +57,7 @@ class FormTest(monstro.testing.AsyncTestCase):
         self.assertIn('string', context.exception.error)
         self.assertIn('string', instance.__errors__)
 
-    async def test_get_metadata(self):
+    async def test_get_options(self):
         instance = TestForm()
 
         self.assertEqual(
@@ -72,7 +72,7 @@ class FormTest(monstro.testing.AsyncTestCase):
                     'attrs': {'type': 'text'},
                     'tag': 'input',
                 }
-            }, (await instance.get_metadata())[0]
+            }, (await instance.get_options())[0]
         )
 
     async def test_serialize(self):

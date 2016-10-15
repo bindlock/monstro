@@ -91,7 +91,7 @@ class ForeignKey(Field):
 
         return value
 
-    async def get_metadata(self):
+    async def get_options(self):
         choices = []
         model = self.get_related_model()
 
@@ -106,4 +106,4 @@ class ForeignKey(Field):
 
         self.widget = widgets.Select(choices)
 
-        return await super().get_metadata()
+        return await super().get_options()
