@@ -23,6 +23,7 @@ __all__ = (
     'Host',
     'Slug',
     'Map',
+    'JSON',
     'Date',
     'Time',
     'DateTime'
