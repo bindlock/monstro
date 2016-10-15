@@ -174,10 +174,29 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
         for __ in range(3):
             await self.model.objects.create(name='test')
 
-        field = ForeignKey(
-            related_model=self.model, related_field='name'
-        )
+        field = ForeignKey(related_model=self.model, related_field='name')
 
         self.assertEqual(
             4, len((await field.get_metadata())['widget']['options'])
+        )
+
+    async def test_get_metadata__with_to_python(self):
+
+        class Model(model.Model):
+
+            __collection__ = '__models__'
+
+            foreign = ForeignKey(related_model=self.model)
+
+            def __str__(self):
+                return self.foreign.name
+
+        name = 'test'
+        instance = await self.model.objects.create(name=name)
+        await Model.objects.create(foreign=instance)
+
+        field = ForeignKey(related_model=Model)
+
+        self.assertEqual(
+            name, (await field.get_metadata())['widget']['options'][0]['label']
         )

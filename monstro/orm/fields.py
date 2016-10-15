@@ -97,7 +97,12 @@ class ForeignKey(Field):
 
         async for item in model.objects.values():
             instance = model(data=item)
-            choices.append((str(item.get(self.related_field)), str(instance)))
+
+            try:
+                choices.append((str(item[self.related_field]), str(instance)))
+            except (AttributeError, KeyError):
+                await instance.to_python()
+                choices.append((str(item[self.related_field]), str(instance)))
 
         self.widget = widgets.Select(choices)
 
