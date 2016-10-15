@@ -71,18 +71,18 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
         self.instance = await self.model.objects.create(name=uuid.uuid4().hex)
 
     def test_init__with_related_model_as_string(self):
-        field = ForeignKey(related_model='monstro.testing.TestModel')
+        field = ForeignKey(to='monstro.testing.TestModel')
 
         self.assertEqual(TestModel, field.get_related_model())
 
     def test_init__with_related_model_as_string__self(self):
-        field = ForeignKey(related_model='self')
+        field = ForeignKey(to='self')
         field.bind(model=TestModel)
 
         self.assertEqual(TestModel, field.get_related_model())
 
     async def test_validate__with_related_model_as_string(self):
-        field = ForeignKey(related_model='self')
+        field = ForeignKey(to='self')
         field.bind(model=TestModel)
 
         instance = await TestModel.objects.create(name=uuid.uuid4().hex)
@@ -90,19 +90,19 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
         await field.validate(instance._id)
 
     async def test_to_python(self):
-        field = ForeignKey(related_model=self.model, related_field='name')
+        field = ForeignKey(to=self.model, to_field='name')
         value = await field.to_python(self.instance.name)
 
         self.assertEqual(value.name, self.instance.name)
 
     async def test_to_python__from_instance(self):
-        field = ForeignKey(related_model=self.model, related_field='name')
+        field = ForeignKey(to=self.model, to_field='name')
         value = await field.to_python(self.instance)
 
         self.assertEqual(value.name, self.instance.name)
 
     async def test_to_python__from_not_saved_instance(self):
-        field = ForeignKey(related_model=self.model, related_field='name')
+        field = ForeignKey(to=self.model, to_field='name')
 
         with self.assertRaises(ValidationError) as context:
             await field.to_python(self.model())
@@ -113,43 +113,38 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
         )
 
     async def test_to_python__from_string_id(self):
-        field = ForeignKey(related_model=self.model)
+        field = ForeignKey(to=self.model)
         value = await field.to_python(self.instance._id)
 
         self.assertEqual(value.name, self.instance.name)
 
     async def test_validate(self):
         field = ForeignKey(
-            default=self.instance, related_model=self.model,
-            related_field='name'
+            default=self.instance, to=self.model,
+            to_field='name'
         )
         await field.validate()
 
         self.assertIsInstance(self.instance, self.model)
 
     async def test_to_internal_value__id(self):
-        field = ForeignKey(related_model=self.model)
+        field = ForeignKey(to=self.model)
 
         value = await field.to_internal_value(self.instance)
 
         self.assertEqual(str(self.instance._id), value)
 
     async def test_validate__from_key(self):
-        field = ForeignKey(
-            default=self.instance.name, related_model=self.model,
-            related_field='name'
-        )
-        await field.validate()
+        field = ForeignKey(to=self.model, to_field='name')
+        await field.validate(self.instance.name)
 
         self.assertIsInstance(self.instance, self.model)
 
     async def test_validate__error(self):
-        field = ForeignKey(
-            default='blackjack', related_model=self.model, related_field='name'
-        )
+        field = ForeignKey(to=self.model, to_field='name')
 
         with self.assertRaises(ValidationError) as context:
-            await field.validate()
+            await field.validate('blackjack')
 
         self.assertEqual(
             context.exception.error,
@@ -157,13 +152,10 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
         )
 
     async def test_validate__error_wrong_model(self):
-        field = ForeignKey(
-            default=fields.String(),
-            related_model=self.model, related_field='name'
-        )
+        field = ForeignKey(to=self.model, to_field='name')
 
         with self.assertRaises(ValidationError) as context:
-            await field.validate()
+            await field.validate(fields.String())
 
         self.assertEqual(
             context.exception.error,
@@ -174,7 +166,7 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
         for __ in range(3):
             await self.model.objects.create(name='test')
 
-        field = ForeignKey(related_model=self.model, related_field='name')
+        field = ForeignKey(to=self.model, to_field='name')
 
         self.assertEqual(
             4, len((await field.get_options())['widget']['options'])
@@ -186,7 +178,7 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
 
             __collection__ = '__models__'
 
-            foreign = ForeignKey(related_model=self.model)
+            foreign = ForeignKey(to=self.model)
 
             def __str__(self):
                 return self.foreign.name
@@ -195,7 +187,7 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
         instance = await self.model.objects.create(name=name)
         await Model.objects.create(foreign=instance)
 
-        field = ForeignKey(related_model=Model)
+        field = ForeignKey(to=Model)
 
         self.assertEqual(
             name, (await field.get_options())['widget']['options'][0]['label']

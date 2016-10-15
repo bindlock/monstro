@@ -25,9 +25,7 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
 
             __collection__ = uuid.uuid4().hex
 
-            key = fields.ForeignKey(
-                related_model=Related, related_field='name'
-            )
+            key = fields.ForeignKey(to=Related, to_field='name')
             name = fields.String()
             age = fields.Integer(required=False)
 

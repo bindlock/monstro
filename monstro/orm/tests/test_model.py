@@ -149,7 +149,7 @@ class ModelTest(monstro.testing.AsyncTestCase):
 
             string = fields.String()
             related = ForeignKey(
-                related_model=RelatedModel, related_field='name'
+                to=RelatedModel, to_field='name'
             )
 
         related_model = await RelatedModel.objects.create(
@@ -174,13 +174,13 @@ class ModelTest(monstro.testing.AsyncTestCase):
             __collection__ = 'test'
 
             name = fields.String()
-            related = ForeignKey(related_model=FirstModel)
+            related = ForeignKey(to=FirstModel)
 
         class ThirdModel(model.Model):
             __collection__ = 'test'
 
             name = fields.String()
-            related = ForeignKey(related_model=SecondModel)
+            related = ForeignKey(to=SecondModel)
 
         first = await FirstModel.objects.create(name=uuid.uuid4().hex)
         second = await SecondModel.objects.create(

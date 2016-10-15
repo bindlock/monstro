@@ -39,44 +39,44 @@ class Id(Field):
 class ForeignKey(Field):
 
     error_messages = {
-        'invalid': 'Model instance must be a {0.related_model.__name__}',
+        'invalid': 'Model instance must be a {0.to.__name__}',
         'foreign_key': 'Related model not found'
     }
 
-    def __init__(self, *, related_model, related_field='_id', **kwargs):
+    def __init__(self, *, to, to_field='_id', **kwargs):
         super().__init__(**kwargs)
 
-        self.related_model = related_model
-        self.related_field = related_field
+        self.to = to
+        self.to_field = to_field
 
     def get_related_model(self):
-        if isinstance(self.related_model, str):
-            if self.related_model == 'self':
-                self.related_model = self.model
+        if isinstance(self.to, str):
+            if self.to == 'self':
+                self.to = self.model
             else:
-                self.related_model = import_object(self.related_model)
+                self.to = import_object(self.to)
 
-        return self.related_model
+        return self.to
 
     async def to_python(self, value):
-        related_model = self.get_related_model()
+        model = self.get_related_model()
 
-        if isinstance(value, related_model):
+        if isinstance(value, model):
             if not value._id:
                 self.fail('foreign_key')
 
             return value
-        elif isinstance(value, str) and self.related_field == '_id':
+        elif isinstance(value, str) and self.to_field == '_id':
             try:
                 value = ObjectId(value)
             except bson.errors.InvalidId:
                 self.fail('invalid')
 
-        query = {self.related_field: value}
+        query = {self.to_field: value}
 
         try:
-            value = await related_model.objects.get(**query)
-        except related_model.DoesNotExist:
+            value = await model.objects.get(**query)
+        except model.DoesNotExist:
             self.fail('foreign_key')
         except (bson.errors.InvalidDocument, InvalidQuery):
             self.fail('invalid')
@@ -84,9 +84,9 @@ class ForeignKey(Field):
         return value
 
     async def to_internal_value(self, value):
-        value = getattr(value, self.related_field)
+        value = getattr(value, self.to_field)
 
-        if self.related_field == '_id':
+        if self.to_field == '_id':
             return str(value)
 
         return value
@@ -99,10 +99,10 @@ class ForeignKey(Field):
             instance = model(data=item)
 
             try:
-                choices.append((str(item[self.related_field]), str(instance)))
+                choices.append((str(item[self.to_field]), str(instance)))
             except (AttributeError, KeyError):
                 await instance.to_python()
-                choices.append((str(item[self.related_field]), str(instance)))
+                choices.append((str(item[self.to_field]), str(instance)))
 
         self.widget = widgets.Select(choices)
 
