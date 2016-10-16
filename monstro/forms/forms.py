@@ -19,9 +19,9 @@ class MetaForm(type):
             if hasattr(parent, '__fields__'):
                 fields.update(parent.__fields__)
 
-        for name, field in attributes.items():
-            if isinstance(field, Field):
-                fields[name] = field
+        for key, value in attributes.items():
+            if isinstance(value, Field):
+                fields[key] = value
 
         for field in fields:
             attributes.pop(field, None)

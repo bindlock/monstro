@@ -22,6 +22,9 @@ class FormTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual({'string': None, 'number': None}, instance.__values__)
 
+    def test_class_name(self):
+        self.assertEqual('TestForm', TestForm.__name__)
+
     def test_init__with_instance(self):
         instance = TestForm(instance=type('Object', (object,), {'number': 1}))
 
