@@ -41,15 +41,13 @@ class Form(object, metaclass=MetaForm):
 
     def __init__(self, *, instance=None, data=None):
         self.__instance__ = instance
-        self.__values__ = {name: None for name in self.__fields__.keys()}
+        self.__values__ = {}
 
-        if self.__instance__ is not None:
-            for name in self.__fields__.keys():
-                self.__values__[name] = getattr(self.__instance__, name, None)
+        data = (data or {})
 
-        if data is not None:
-            for name in self.__fields__.keys():
-                self.__values__[name] = data.get(name, self.__values__[name])
+        for name, field in self.__fields__.items():
+            value = data.get(name, getattr(instance, name, field.default))
+            self.__values__[name] = value
 
     def __getattr__(self, attribute):
         if attribute in self.__fields__:
