@@ -76,7 +76,7 @@ class QuerySet(object):
             await self.validate_query()
 
         if await self.cursor.fetch_next:
-            return await self.model(data=self.cursor.next_object()).to_python()
+            return await self.model(data=self.cursor.next_object()).deserialize()
 
         raise StopAsyncIteration()
 
@@ -99,10 +99,10 @@ class QuerySet(object):
 
             try:
                 field = self.model.__fields__[key]
-                value = await field.to_python(value)
+                value = await field.deserialize(value)
 
                 if key != '_id':
-                    value = await field.to_internal_value(value)
+                    value = await field.serialize(value)
             except self.model.ValidationError as e:
                 logger.warning('Invalid query: {}'.format(e))
             except KeyError:

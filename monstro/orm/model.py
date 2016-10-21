@@ -81,7 +81,7 @@ class Model(Form, metaclass=MetaModel):
         if self._id:
             data = await self.__cursor__.find_one({'_id': self._id})
             self.__values__.update(data)
-            return await self.to_python()
+            return await self.deserialize()
 
     async def delete(self):
         if self._id:

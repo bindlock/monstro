@@ -220,7 +220,7 @@ class ModelTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error['string'],
-            fields.Field.error_messages['unique']
+            fields.Field.errors['unique']
         )
 
     async def test_delete(self):

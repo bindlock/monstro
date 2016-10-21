@@ -82,7 +82,7 @@ class Form(object, metaclass=MetaForm):
 
         return values
 
-    async def to_python(self):
+    async def deserialize(self):
         for name, field in self.__fields__.items():
             value = self.__values__.get(name)
 
@@ -91,7 +91,7 @@ class Form(object, metaclass=MetaForm):
                 continue
 
             try:
-                self.__values__[name] = await field.to_python(value)
+                self.__values__[name] = await field.deserialize(value)
             except exceptions.ValidationError:
                 self.__values__[name] = field.default
 
@@ -124,7 +124,7 @@ class Form(object, metaclass=MetaForm):
             value = self.__values__.get(name)
 
             if value is not None:
-                data[name] = await field.to_internal_value(value)
+                data[name] = await field.serialize(value)
             else:
                 data[name] = None
 

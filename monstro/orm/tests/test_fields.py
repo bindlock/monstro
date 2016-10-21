@@ -23,10 +23,10 @@ monstro.testing.TestModel = TestModel
 
 class IdTest(monstro.testing.AsyncTestCase):
 
-    async def test_to_python(self):
+    async def test_deserialize(self):
         field = Id()
 
-        value = await field.to_python(str(ObjectId()))
+        value = await field.deserialize(str(ObjectId()))
 
         self.assertIsInstance(value, ObjectId)
 
@@ -35,14 +35,14 @@ class IdTest(monstro.testing.AsyncTestCase):
 
         await field.validate()
 
-    async def test_to_python__wrong_object(self):
+    async def test_deserialize__wrong_object(self):
         field = Id()
 
         with self.assertRaises(ValidationError) as context:
-            await field.to_python(object)
+            await field.deserialize(object)
 
         self.assertEqual(
-            context.exception.error, Id.error_messages['invalid']
+            context.exception.error, Id.errors['invalid']
         )
 
     async def test_validate__error(self):
@@ -52,7 +52,7 @@ class IdTest(monstro.testing.AsyncTestCase):
             await field.validate()
 
         self.assertEqual(
-            context.exception.error, Id.error_messages['invalid']
+            context.exception.error, Id.errors['invalid']
         )
 
 
@@ -89,32 +89,32 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
 
         await field.validate(instance._id)
 
-    async def test_to_python(self):
+    async def test_deserialize(self):
         field = ForeignKey(to=self.model, to_field='name')
-        value = await field.to_python(self.instance.name)
+        value = await field.deserialize(self.instance.name)
 
         self.assertEqual(value.name, self.instance.name)
 
-    async def test_to_python__from_instance(self):
+    async def test_deserialize__from_instance(self):
         field = ForeignKey(to=self.model, to_field='name')
-        value = await field.to_python(self.instance)
+        value = await field.deserialize(self.instance)
 
         self.assertEqual(value.name, self.instance.name)
 
-    async def test_to_python__from_not_saved_instance(self):
+    async def test_deserialize__from_not_saved_instance(self):
         field = ForeignKey(to=self.model, to_field='name')
 
         with self.assertRaises(ValidationError) as context:
-            await field.to_python(self.model())
+            await field.deserialize(self.model())
 
         self.assertEqual(
             context.exception.error,
-            ForeignKey.error_messages['foreign_key']
+            ForeignKey.errors['foreign_key']
         )
 
-    async def test_to_python__from_string_id(self):
+    async def test_deserialize__from_string_id(self):
         field = ForeignKey(to=self.model)
-        value = await field.to_python(self.instance._id)
+        value = await field.deserialize(self.instance._id)
 
         self.assertEqual(value.name, self.instance.name)
 
@@ -127,10 +127,10 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
 
         self.assertIsInstance(self.instance, self.model)
 
-    async def test_to_internal_value__id(self):
+    async def test_serialize__id(self):
         field = ForeignKey(to=self.model)
 
-        value = await field.to_internal_value(self.instance)
+        value = await field.serialize(self.instance)
 
         self.assertEqual(str(self.instance._id), value)
 
@@ -148,7 +148,7 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            ForeignKey.error_messages['foreign_key']
+            ForeignKey.errors['foreign_key']
         )
 
     async def test_validate__error_wrong_model(self):
@@ -159,7 +159,7 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            ForeignKey.error_messages['invalid'].format(field)
+            ForeignKey.errors['invalid'].format(field)
         )
 
     async def test_get_options(self):
@@ -172,7 +172,7 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
             4, len((await field.get_options())['widget']['options'])
         )
 
-    async def test_get_options__with_to_python(self):
+    async def test_get_options__with_deserialize(self):
 
         class Model(model.Model):
 
@@ -219,7 +219,7 @@ class ManyToManyTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(instances, await field.validate(instances))
 
-    async def test_to_internal_value(self):
+    async def test_serialize(self):
         field = ManyToMany(to=self.model, to_field='name')
         instances = [
             await self.model.objects.create(name=uuid.uuid4().hex),
@@ -228,7 +228,7 @@ class ManyToManyTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             [instance.name for instance in instances],
-            await field.to_internal_value(instances)
+            await field.serialize(instances)
         )
 
     async def test_get_options(self):

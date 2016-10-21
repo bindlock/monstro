@@ -20,7 +20,7 @@ __all__ = (
 class Id(Field):
 
     widget = widgets.Input('hidden')
-    error_messages = {
+    errors = {
         'invalid': 'Value must be an valid MongoDB Id'
     }
 
@@ -28,7 +28,7 @@ class Id(Field):
         kwargs['required'] = False
         super().__init__(**kwargs)
 
-    async def to_python(self, value):
+    async def deserialize(self, value):
         if isinstance(value, str):
             try:
                 return ObjectId(value)
@@ -39,13 +39,13 @@ class Id(Field):
 
         return value
 
-    async def to_internal_value(self, value):
+    async def serialize(self, value):
         return str(value)
 
 
 class ForeignKey(Field):
 
-    error_messages = {
+    errors = {
         'invalid': 'Model instance must be a {0.to.__name__}',
         'foreign_key': 'Related model not found'
     }
@@ -65,7 +65,7 @@ class ForeignKey(Field):
 
         return self.to
 
-    async def to_python(self, value):
+    async def deserialize(self, value):
         model = self.get_related_model()
 
         if isinstance(value, model):
@@ -90,7 +90,7 @@ class ForeignKey(Field):
 
         return value
 
-    async def to_internal_value(self, value):
+    async def serialize(self, value):
         value = getattr(value, self.to_field)
 
         if self.to_field == '_id':
@@ -108,7 +108,7 @@ class ForeignKey(Field):
             try:
                 choices.append((str(item[self.to_field]), str(instance)))
             except (AttributeError, KeyError):
-                await instance.to_python()
+                await instance.deserialize()
                 choices.append((str(item[self.to_field]), str(instance)))
 
         self.widget = widgets.Select(choices)

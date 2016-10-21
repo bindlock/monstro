@@ -33,7 +33,7 @@ __all__ = (
 class Field(object):
 
     widget = None
-    error_messages = {
+    errors = {
         'required': 'Value is required',
         'invalid': 'Value is invalid',
         'unique': 'Value must be unique',
@@ -42,18 +42,17 @@ class Field(object):
 
     def __init__(self, *, name=None, required=True, default=None, label=None,
                  unique=False, help_text=None, read_only=False,
-                 validators=None, error_messages=None, widget=None):
+                 validators=None, errors=None, widget=None):
 
-        """Initialization instance.
-
+        """
         :param required (optional): value is required flag.
         :type required: bool.
         :param default (optional): default value.
         :type default: type.
         :param validators (optional): additional validators.
         :type validators: iterable of callable.
-        :param error_messages (optional): override default error messages.
-        :type error_messages: dict.
+        :param errors (optional): override default error messages.
+        :type errors: dict.
         """
         self.name = name
         self.required = required
@@ -68,14 +67,14 @@ class Field(object):
         if self._default is not None:
             self.required = False
 
-        messages = {}
+        _errors = {}
 
         for cls in reversed(self.__class__.__mro__):
-            messages.update(getattr(cls, 'error_messages', {}))
+            _errors.update(getattr(cls, 'errors', {}))
 
-        messages.update(error_messages or {})
+        _errors.update(errors or {})
 
-        self.error_messages = messages
+        self.errors = _errors
 
     @property
     def label(self):
@@ -104,7 +103,7 @@ class Field(object):
             else:
                 return None
 
-        value = await self.to_python(value)
+        value = await self.deserialize(value)
 
         for validator in self.validators:
             value = await validator(value)
@@ -120,15 +119,15 @@ class Field(object):
 
         return value
 
-    def fail(self, error_code, **kwargs):
+    def fail(self, error, **kwargs):
         raise ValidationError(
-            self.error_messages[error_code].format(self, **kwargs), self.name
+            self.errors[error].format(self, **kwargs), self.name
         )
 
-    async def to_python(self, value):
+    async def deserialize(self, value):
         return value
 
-    async def to_internal_value(self, value):
+    async def serialize(self, value):
         return value
 
     async def on_save(self, value):
@@ -138,36 +137,34 @@ class Field(object):
         return value
 
     async def get_options(self):
-        metadata = {
+        options = {
             'name': self.name,
-            'label': self.label or (self.name and self.name.title()),
+            'label': self.label,
             'help_text': self.help_text,
             'required': self.required,
             'read_only': self.read_only,
+            'default': None,
+            'widget': None
         }
 
         if not (self._default is None or callable(self._default)):
-            metadata['default'] = await self.to_internal_value(self._default)
-        else:
-            metadata['default'] = None
+            options['default'] = await self.serialize(self._default)
 
         if self.widget:
-            metadata['widget'] = self.widget.get_options()
-        else:
-            metadata['widget'] = None
+            options['widget'] = self.widget.get_options()
 
-        return metadata
+        return options
 
 
 class Type(Field):
 
     type = type
     widget = widgets.Input('text')
-    error_messages = {
+    errors = {
         'invalid': 'Value must be a valid {0.type.__name__}'
     }
 
-    async def to_python(self, value):
+    async def deserialize(self, value):
         if not isinstance(value, self.type):
             self.fail('invalid')
 
@@ -178,7 +175,7 @@ class Boolean(Type):
 
     type = bool
     widget = widgets.Input('checkbox')
-    error_messages = {
+    errors = {
         'invalid': 'Value must be a valid boolean'
     }
 
@@ -186,7 +183,7 @@ class Boolean(Type):
 class String(Type):
 
     type = str
-    error_messages = {
+    errors = {
         'invalid': 'Value must be a valid string',
         'min_length': 'String must be greater {0.min_length} characters',
         'max_length': 'String must be less {0.max_length} characters'
@@ -197,8 +194,8 @@ class String(Type):
         self.max_length = max_length
         super().__init__(**kwargs)
 
-    async def to_python(self, value):
-        value = await super().to_python(value)
+    async def deserialize(self, value):
+        value = await super().deserialize(value)
 
         if self.min_length is not None and len(value) < self.min_length:
             self.fail('min_length')
@@ -211,7 +208,7 @@ class String(Type):
 
 class Numeric(Type):
 
-    error_messages = {
+    errors = {
         'invalid': 'Value must be a valid integer or float',
         'min_value': 'Number must be greater {0.min_value} characters',
         'max_value': 'Number must be less {0.max_value} characters'
@@ -222,7 +219,7 @@ class Numeric(Type):
         self.max_value = max_value
         super().__init__(**kwargs)
 
-    async def to_python(self, value):
+    async def deserialize(self, value):
         try:
             value = self.type(value)
         except (TypeError, ValueError):
@@ -240,7 +237,7 @@ class Numeric(Type):
 class Integer(Numeric):
 
     type = int
-    error_messages = {
+    errors = {
         'invalid': 'Value must be a valid integer',
     }
 
@@ -248,14 +245,14 @@ class Integer(Numeric):
 class Float(Numeric):
 
     type = float
-    error_messages = {
+    errors = {
         'invalid': 'Value must be a valid float',
     }
 
 
 class Choice(Field):
 
-    error_messages = {
+    errors = {
         'invalid': 'Value must be in {choices}',
     }
 
@@ -269,7 +266,7 @@ class Choice(Field):
         self.widget = widgets.Select(self.choices)
         super().__init__(**kwargs)
 
-    async def to_python(self, value):
+    async def deserialize(self, value):
         choices = [choice[0] for choice in self.choices]
 
         if value not in choices:
@@ -282,7 +279,7 @@ class Array(Type):
 
     type = list
     widget = widgets.TextArea()
-    error_messages = {
+    errors = {
         'invalid': 'Value must be a valid array',
         'child': '{index}: {message}'
     }
@@ -291,15 +288,15 @@ class Array(Type):
         self.field = field
         super().__init__(**kwargs)
 
-    async def to_python(self, value):
-        value = await super().to_python(value)
+    async def deserialize(self, value):
+        value = await super().deserialize(value)
 
         if self.field:
             values = []
 
             for index, item in enumerate(value):
                 try:
-                    values.append(await self.field.to_python(item))
+                    values.append(await self.field.deserialize(item))
                 except ValidationError as e:
                     self.fail('child', index=index, message=e.error)
 
@@ -307,12 +304,12 @@ class Array(Type):
 
         return value
 
-    async def to_internal_value(self, value):
+    async def serialize(self, value):
         if self.field:
             values = []
 
             for item in value:
-                values.append(await self.field.to_internal_value(item))
+                values.append(await self.field.serialize(item))
 
             return values
 
@@ -321,7 +318,7 @@ class Array(Type):
 
 class MultipleChoice(Array, Choice):
 
-    error_messages = {
+    errors = {
         'choices': 'All values must be in {choices}',
     }
 
@@ -331,8 +328,8 @@ class MultipleChoice(Array, Choice):
 
         self.widget.attributes['multiple'] = True
 
-    async def to_python(self, value):
-        value = await Array.to_python(self, value)
+    async def deserialize(self, value):
+        value = await Array.deserialize(self, value)
 
         choices = [choice[0] for choice in self.choices]
 
@@ -344,12 +341,12 @@ class MultipleChoice(Array, Choice):
 
 class URL(String):
 
-    error_messages = {
+    errors = {
         'url': 'Value must be a valid URL',
     }
 
-    async def to_python(self, value):
-        value = await super().to_python(value)
+    async def deserialize(self, value):
+        value = await super().deserialize(value)
 
         url = urllib.parse.urlparse(value)
 
@@ -361,7 +358,7 @@ class URL(String):
 
 class RegexMatch(String):
 
-    error_messages = {
+    errors = {
         'pattern': 'Value must match by {0.pattern}',
     }
 
@@ -369,8 +366,8 @@ class RegexMatch(String):
         self.pattern = re.compile(pattern or self.pattern)
         super().__init__(**kwargs)
 
-    async def to_python(self, value):
-        value = await super().to_python(value)
+    async def deserialize(self, value):
+        value = await super().deserialize(value)
 
         if not self.pattern.match(value):
             self.fail('pattern')
@@ -380,7 +377,7 @@ class RegexMatch(String):
 
 class Host(RegexMatch):
 
-    error_messages = {
+    errors = {
         'pattern': 'Value must be a valid host',
     }
     pattern = (
@@ -394,7 +391,7 @@ class Host(RegexMatch):
 
 class Slug(RegexMatch):
 
-    error_messages = {
+    errors = {
         'pattern': 'Value must be a valid slug',
     }
     pattern = r'^[a-zA-Z\d\-_]+$'
@@ -403,11 +400,11 @@ class Slug(RegexMatch):
 class Map(Field):
 
     widget = widgets.TextArea()
-    error_messages = {
+    errors = {
         'invalid': 'Value must be a map',
     }
 
-    async def to_python(self, value):
+    async def deserialize(self, value):
         if not isinstance(value, dict):
             self.fail('invalid')
 
@@ -417,11 +414,11 @@ class Map(Field):
 class JSON(Field):
 
     widget = widgets.TextArea()
-    error_messages = {
+    errors = {
         'invalid': 'Value must be a valid JSON string',
     }
 
-    async def to_python(self, value):
+    async def deserialize(self, value):
         try:
             return json.loads(value)
         except (ValueError, TypeError):
@@ -431,7 +428,7 @@ class JSON(Field):
 class DateTime(Field):
 
     widget = widgets.Input('datetime')
-    error_messages = {
+    errors = {
         'invalid': 'Datetime must be in next formats: {0.available_formats}'
     }
 
@@ -467,7 +464,7 @@ class DateTime(Field):
 
         return value
 
-    async def to_python(self, value):
+    async def deserialize(self, value):
         if isinstance(value, str):
             for input_format in self.available_formats:
                 try:
@@ -482,31 +479,31 @@ class DateTime(Field):
 
         return value
 
-    async def to_internal_value(self, value):
+    async def serialize(self, value):
         return value.isoformat()
 
 
 class Date(DateTime):
 
     widget = widgets.Input('date')
-    error_messages = {
+    errors = {
         'invalid': 'Date must be in next formats: {0.available_formats}'
     }
 
     default_format = '%Y-%m-%d'
 
-    async def to_python(self, value):
-        return (await super().to_python(value)).date()
+    async def deserialize(self, value):
+        return (await super().deserialize(value)).date()
 
 
 class Time(DateTime):
 
     widget = widgets.Input('time')
-    error_messages = {
+    errors = {
         'invalid': 'Time must be in next formats: {0.available_formats}'
     }
 
     default_format = '%H:%M:%S'
 
-    async def to_python(self, value):
-        return (await super().to_python(value)).time()
+    async def deserialize(self, value):
+        return (await super().deserialize(value)).time()
