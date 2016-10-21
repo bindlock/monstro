@@ -2,22 +2,6 @@
 
 from monstro.utils import Choices
 
-from .fields import (
-    Boolean,
-    String,
-    Integer,
-    Float,
-    Choice,
-    Array,
-    MultipleChoice,
-    Url,
-    RegexMatch,
-    Host,
-    Slug,
-    Map,
-    Date,
-    Time,
-    DateTime
-)
+from .fields import *  # pylint: disable=W0401
 from .forms import Form
 from .exceptions import ValidationError

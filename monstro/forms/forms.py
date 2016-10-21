@@ -1,13 +1,9 @@
 # coding=utf-8
 
-import logging
 import collections
 
 from . import exceptions
 from .fields import Field
-
-
-logger = logging.getLogger('monstro')
 
 
 class MetaForm(type):
@@ -23,9 +19,9 @@ class MetaForm(type):
             if hasattr(parent, '__fields__'):
                 fields.update(parent.__fields__)
 
-        for name, field in attributes.items():
-            if isinstance(field, Field):
-                fields[name] = field
+        for key, value in attributes.items():
+            if isinstance(value, Field):
+                fields[key] = value
 
         for field in fields:
             attributes.pop(field, None)
@@ -44,19 +40,14 @@ class MetaForm(type):
 class Form(object, metaclass=MetaForm):
 
     def __init__(self, *, instance=None, data=None):
-        self.__valid__ = True
         self.__instance__ = instance
-        self.__values__ = {name: None for name in self.__fields__.keys()}
+        self.__values__ = {}
 
-        if self.__instance__ is not None:
-            for name in self.__fields__.keys():
-                self.__values__[name] = getattr(self.__instance__, name, None)
+        data = (data or {})
 
-        if data is not None:
-            for name in self.__fields__.keys():
-                self.__values__[name] = data.get(name, self.__values__[name])
-
-            self.__valid__ = False
+        for name, field in self.__fields__.items():
+            value = data.get(name, getattr(instance, name, field.default))
+            self.__values__[name] = value
 
     def __getattr__(self, attribute):
         if attribute in self.__fields__:
@@ -72,24 +63,37 @@ class Form(object, metaclass=MetaForm):
             return super().__setattr__(attribute, value)
 
     @classmethod
-    async def get_metadata(cls):
+    async def get_options(cls):
         metadata = []
 
         for field in cls.__fields__.values():
-            metadata.append(await field.get_metadata())
+            metadata.append(await field.get_options())
 
         return metadata
 
-    async def to_python(self):
+    def get_values(self):
+        values = {}
+
+        for name in self.__fields__:
+            values[name] = self.__values__.get(name)
+
+            if name == '_id':
+                values[name] = str(values[name])
+
+        return values
+
+    async def deserialize(self):
         for name, field in self.__fields__.items():
             value = self.__values__.get(name)
 
+            if value is None:
+                self.__values__[name] = field.default
+                continue
+
             try:
-                self.__values__[name] = await field.to_python(value)
+                self.__values__[name] = await field.deserialize(value)
             except exceptions.ValidationError:
                 self.__values__[name] = field.default
-
-        self.__valid__ = True
 
         return self
 
@@ -111,22 +115,16 @@ class Form(object, metaclass=MetaForm):
         if self.__errors__:
             raise exceptions.ValidationError(self.__errors__)
 
-        self.__valid__ = True
-
         return self
 
     async def serialize(self):
-        assert self.__valid__, (
-            'You cannot call .serialize() before call .validate()'
-        )
-
         data = {}
 
         for name, field in self.__fields__.items():
             value = self.__values__.get(name)
 
             if value is not None:
-                data[name] = await field.to_internal_value(value)
+                data[name] = await field.serialize(value)
             else:
                 data[name] = None
 

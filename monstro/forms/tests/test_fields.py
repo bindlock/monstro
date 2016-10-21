@@ -2,8 +2,6 @@
 
 import datetime
 
-import tornado.gen
-
 import monstro.testing
 from monstro.utils import Choices
 
@@ -12,28 +10,23 @@ from monstro.forms import fields, exceptions
 
 class FieldTest(monstro.testing.AsyncTestCase):
 
-    async def test_to_python(self):
+    async def test_deserialize(self):
         field = fields.Field()
 
-        self.assertEqual(None, await field.to_python(None))
+        self.assertEqual(None, await field.deserialize(None))
 
-    async def test_to_internal_value(self):
+    async def test_serialize(self):
         field = fields.Field()
 
-        self.assertEqual(None, await field.to_internal_value(None))
+        self.assertEqual(None, await field.serialize(None))
+
+    def test_create_label_from_name(self):
+        field = fields.Field(name='some_field')
+
+        self.assertEqual('Some field', field.label)
 
     def test_callable_default(self):
         field = fields.Integer(default=lambda: 1 + 1)
-
-        self.assertEqual(2, field.default)
-
-    def test_coroutine_default(self):
-
-        @tornado.gen.coroutine
-        def f():
-            return 1 + 1
-
-        field = fields.Integer(default=f)
 
         self.assertEqual(2, field.default)
 
@@ -45,7 +38,7 @@ class FieldTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Integer.default_error_messages['invalid']
+            fields.Integer.errors['invalid']
         )
 
     async def test__validation_error_required(self):
@@ -56,7 +49,7 @@ class FieldTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Field.default_error_messages['required']
+            fields.Field.errors['required']
         )
 
     async def test_validation__validators(self):
@@ -71,7 +64,7 @@ class FieldTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(context.exception.error, 1)
 
-    async def test_get_metadata(self):
+    async def test_get_options(self):
         field = fields.Field()
 
         self.assertEqual({
@@ -82,7 +75,7 @@ class FieldTest(monstro.testing.AsyncTestCase):
             'read_only': False,
             'default': None,
             'widget': None
-        }, await field.get_metadata())
+        }, await field.get_options())
 
 
 class BooleanTest(monstro.testing.AsyncTestCase):
@@ -99,7 +92,7 @@ class BooleanTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Boolean.default_error_messages['invalid']
+            fields.Boolean.errors['invalid']
         )
 
 
@@ -117,7 +110,7 @@ class StringTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.String.default_error_messages['invalid']
+            fields.String.errors['invalid']
         )
 
     async def test_validate__min_length(self):
@@ -128,7 +121,7 @@ class StringTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.String.default_error_messages['min_length'].format(
+            fields.String.errors['min_length'].format(
                 field
             )
         )
@@ -141,15 +134,15 @@ class StringTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.String.default_error_messages['max_length'].format(
+            fields.String.errors['max_length'].format(
                 field
             )
         )
 
-    async def test_to_internal_value__none(self):
+    async def test_serialize__none(self):
         field = fields.String()
 
-        self.assertEqual(None, await field.to_internal_value(None))
+        self.assertEqual(None, await field.serialize(None))
 
 
 class IntegerTest(monstro.testing.AsyncTestCase):
@@ -166,7 +159,7 @@ class IntegerTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Integer.default_error_messages['invalid']
+            fields.Integer.errors['invalid']
         )
 
     async def test_validate__min_value(self):
@@ -177,7 +170,7 @@ class IntegerTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Numeric.default_error_messages['min_value'].format(
+            fields.Numeric.errors['min_value'].format(
                 field
             )
         )
@@ -190,7 +183,7 @@ class IntegerTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Numeric.default_error_messages['max_value'].format(
+            fields.Numeric.errors['max_value'].format(
                 field
             )
         )
@@ -210,7 +203,7 @@ class FloatTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Float.default_error_messages['invalid']
+            fields.Float.errors['invalid']
         )
 
     async def test_validate__min_value(self):
@@ -221,7 +214,7 @@ class FloatTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Numeric.default_error_messages['min_value'].format(
+            fields.Numeric.errors['min_value'].format(
                 field
             )
         )
@@ -234,7 +227,7 @@ class FloatTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Numeric.default_error_messages['max_value'].format(
+            fields.Numeric.errors['max_value'].format(
                 field
             )
         )
@@ -259,7 +252,7 @@ class ChoicesTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Choice.default_error_messages['invalid'].format(
+            fields.Choice.errors['invalid'].format(
                 choices=self.choices.values
             )
         )
@@ -284,7 +277,7 @@ class MultipleChoiceTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Array.default_error_messages['invalid'].format(field)
+            fields.Array.errors['invalid'].format(field)
         )
 
     async def test_validate__choices(self):
@@ -296,7 +289,7 @@ class MultipleChoiceTest(monstro.testing.AsyncTestCase):
         self.assertEqual(
             context.exception.error,
             fields.MultipleChoice \
-                .default_error_messages['choices'] \
+                .errors['choices'] \
                 .format(choices=self.choices.values)
         )
 
@@ -315,7 +308,7 @@ class ArrayTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Array.default_error_messages['invalid'].format(field)
+            fields.Array.errors['invalid'].format(field)
         )
 
     async def test_validate__invalid_item(self):
@@ -326,62 +319,62 @@ class ArrayTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Array.default_error_messages['child'].format(
+            fields.Array.errors['child'].format(
                 index=0,
-                message=fields.Integer.default_error_messages['invalid']
+                message=fields.Integer.errors['invalid']
             )
         )
 
-    async def test_to_python(self):
+    async def test_deserialize(self):
         field = fields.Array()
 
-        self.assertEqual([], await field.to_python([]))
+        self.assertEqual([], await field.deserialize([]))
 
-    async def test_to_python__with_field(self):
+    async def test_deserialize__with_field(self):
         field = fields.Array(field=fields.Integer())
 
-        self.assertEqual([1], await field.to_python(['1']))
+        self.assertEqual([1], await field.deserialize(['1']))
 
-    async def test_to_internal_value(self):
+    async def test_serialize(self):
         field = fields.Array()
 
-        self.assertEqual([1], await field.to_internal_value([1]))
+        self.assertEqual([1], await field.serialize([1]))
 
-    async def test_to_internal_value__with_field(self):
+    async def test_serialize__with_field(self):
         field = fields.Array(field=fields.Integer())
 
-        self.assertEqual([1], await field.to_internal_value([1]))
+        self.assertEqual([1], await field.serialize([1]))
 
 
-class UrlTest(monstro.testing.AsyncTestCase):
+class URLTest(monstro.testing.AsyncTestCase):
 
     async def test_validate(self):
-        field = fields.Url()
+        field = fields.URL()
         self.assertEqual(
             'https://pyvim.com/about/',
             await field.validate('https://pyvim.com/about/')
         )
 
     async def test_validate__invalid_type(self):
-        field = fields.Url(default=5)
+        field = fields.URL(default=5)
 
         with self.assertRaises(exceptions.ValidationError) as context:
             await field.validate()
 
         self.assertEqual(
             context.exception.error,
-            fields.String.default_error_messages['invalid']
+            fields.String.errors['invalid']
         )
 
     async def test_validate__invalid(self):
-        field = fields.Url(default=':/wrong')
+        field = fields.URL(default=':/wrong')
 
         with self.assertRaises(exceptions.ValidationError) as context:
             await field.validate()
 
         self.assertEqual(
             context.exception.error,
-            fields.Url.default_error_messages['url']
+            fields.URL.errors['url']
         )
 
 
@@ -405,7 +398,7 @@ class HostTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.String.default_error_messages['invalid']
+            fields.String.errors['invalid']
         )
 
     async def test_validate__invalid(self):
@@ -416,7 +409,7 @@ class HostTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Host.default_error_messages['pattern'].format(field)
+            fields.Host.errors['pattern'].format(field)
         )
 
 
@@ -428,17 +421,6 @@ class MapTest(monstro.testing.AsyncTestCase):
             {'key': 'value'}, await field.validate({'key': 'value'})
         )
 
-    async def test_validate__invalid_json(self):
-        field = fields.Map(default='wrong')
-
-        with self.assertRaises(exceptions.ValidationError) as context:
-            await field.validate()
-
-        self.assertEqual(
-            context.exception.error,
-            fields.Map.default_error_messages['invalid'].format(field)
-        )
-
     async def test_validate__invalid_type(self):
         field = fields.Map(default=5)
 
@@ -447,7 +429,27 @@ class MapTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Map.default_error_messages['invalid'].format(field)
+            fields.Map.errors['invalid'].format(field)
+        )
+
+
+class JSONTest(monstro.testing.AsyncTestCase):
+
+    async def test_validate(self):
+        field = fields.JSON()
+        self.assertEqual(
+            {'key': 'value'}, await field.validate('{"key": "value"}')
+        )
+
+    async def test_validate__invalid_type(self):
+        field = fields.JSON()
+
+        with self.assertRaises(exceptions.ValidationError) as context:
+            await field.validate(5)
+
+        self.assertEqual(
+            context.exception.error,
+            fields.JSON.errors['invalid'].format(field)
         )
 
 
@@ -467,7 +469,7 @@ class SlugTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Slug.default_error_messages['pattern'].format(field)
+            fields.Slug.errors['pattern'].format(field)
         )
 
 
@@ -492,75 +494,75 @@ class DateTimeTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(await field.on_create(None), None)
 
-    async def test_to_internal_value(self):
+    async def test_serialize(self):
         field = fields.DateTime()
 
         self.assertEqual(
             '2015-07-13T00:00:00',
-            await field.to_internal_value(datetime.datetime(2015, 7, 13))
+            await field.serialize(datetime.datetime(2015, 7, 13))
         )
 
-    async def test_to_python(self):
+    async def test_deserialize(self):
         field = fields.DateTime()
 
         self.assertIsInstance(
-            await field.to_python('2015-07-13T14:08:12.000000'),
+            await field.deserialize('2015-07-13T14:08:12.000000'),
             datetime.datetime
         )
 
-    async def test_to_python__wrong_format(self):
+    async def test_deserialize__wrong_format(self):
         field = fields.DateTime()
 
         with self.assertRaises(exceptions.ValidationError) as context:
-            await field.to_python('wrong')
+            await field.deserialize('wrong')
 
         self.assertEqual(
             context.exception.error,
-            field.error_messages['invalid'].format(field)
+            field.errors['invalid'].format(field)
         )
 
-    async def test_to_python__wrong_object(self):
+    async def test_deserialize__wrong_object(self):
         field = fields.DateTime()
 
         with self.assertRaises(exceptions.ValidationError) as context:
-            await field.to_python(object)
+            await field.deserialize(object)
 
         self.assertEqual(
             context.exception.error,
-            field.error_messages['invalid'].format(field)
+            field.errors['invalid'].format(field)
         )
 
 
 class DateTest(monstro.testing.AsyncTestCase):
 
-    async def test_to_internal_value(self):
+    async def test_serialize(self):
         field = fields.Date()
 
         self.assertEqual(
             '2015-07-13',
-            await field.to_internal_value(datetime.date(2015, 7, 13))
+            await field.serialize(datetime.date(2015, 7, 13))
         )
 
-    async def test_to_python(self):
+    async def test_deserialize(self):
         field = fields.Date()
 
         self.assertIsInstance(
-            await field.to_python('2015-07-13'), datetime.date
+            await field.deserialize('2015-07-13'), datetime.date
         )
 
 
 class TimeTest(monstro.testing.AsyncTestCase):
 
-    async def test_to_internal_value(self):
+    async def test_serialize(self):
         field = fields.Time()
 
         self.assertEqual(
-            '00:00:00', await field.to_internal_value(datetime.time())
+            '00:00:00', await field.serialize(datetime.time())
         )
 
-    async def test_to_python(self):
+    async def test_deserialize(self):
         field = fields.Time()
 
         self.assertIsInstance(
-            await field.to_python('14:08:12'), datetime.time
+            await field.deserialize('14:08:12'), datetime.time
         )

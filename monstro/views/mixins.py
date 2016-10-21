@@ -61,7 +61,7 @@ class ListResponseMixin(QuerysetResponseMixin):
         return self.pagination
 
     async def paginate(self):
-        queryset = await self.get_queryset()
+        queryset = (await self.get_queryset()).values()
         pagination = self.get_pagination()
         search_fields = self.get_search_fields()
         search_query = self.get_query_argument(self.search_query_argument, '')

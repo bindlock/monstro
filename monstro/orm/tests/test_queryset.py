@@ -4,8 +4,7 @@ import uuid
 import random
 
 import monstro.testing
-from monstro.forms import fields
-
+from monstro.orm import fields
 from monstro.orm import model, exceptions
 from monstro.orm.queryset import QuerySet
 from monstro.orm.proxy import MotorProxy
@@ -16,24 +15,42 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
     async def setUp(self):
         super().setUp()
 
-        class Test(model.Model):
+        class Related(model.Model):
 
             __collection__ = uuid.uuid4().hex
 
             name = fields.String()
+
+        class Test(model.Model):
+
+            __collection__ = uuid.uuid4().hex
+
+            key = fields.ForeignKey(to=Related, to_field='name')
+            name = fields.String()
             age = fields.Integer(required=False)
 
+        self.related_model = Related
         self.model = Test
 
         self.number = random.randint(10, 20)
 
+        self.related = await Related.objects.create(name='test')
+
         for i in range(self.number):
-            await self.model.objects.create(name='test{}'.format(i))
+            await self.model.objects.create(
+                name='test{}'.format(i), age=0, key=self.related
+            )
 
     async def test_validate_query(self):
         queryset = self.model.objects.filter(age='1')
 
         self.assertEqual({'age': 1}, await queryset.validate_query())
+
+    async def test_validate__foreign_key(self):
+        query = {'key': {'$in': ['test']}}
+        queryset = self.model.objects.filter(**query)
+
+        self.assertEqual(query, await queryset.validate_query())
 
     async def test_validate_query__invalid_field(self):
         queryset = self.model.objects.filter(test='1')
@@ -41,11 +58,10 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
         with self.assertRaises(exceptions.InvalidQuery):
             await queryset.validate_query()
 
-    async def test_validate_query__invalid_query(self):
-        queryset = self.model.objects.filter(age='wrong')
+    async def test_cursor_method(self):
+        queryset = self.model.objects.filter()
 
-        with self.assertRaises(exceptions.InvalidQuery):
-            await queryset.validate_query()
+        self.assertEqual(self.number, len(await queryset.distinct('name')))
 
     def test_sorts(self):
         queryset = self.model.objects.filter()
@@ -115,10 +131,26 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
         self.assertIsInstance(queryset.cursor, MotorProxy)
 
     async def test_iterable(self):
-        queryset = self.model.objects.filter()
+        queryset = self.model.objects.filter(key={'$in': ['test', 't']})
         items = []
 
         async for item in queryset:
             items.append(item)
 
-        self.assertEqual(await queryset.count(), len(items))
+        self.assertEqual(self.number, await queryset.count())
+        self.assertEqual(self.number, len(items))
+
+    async def test_only(self):
+        queryset = self.model.objects.only('name')
+
+        async for item in queryset:
+            self.assertEqual(None, item.age)
+
+    async def test_values(self):
+        queryset = self.model.objects.values()
+
+        async for item in queryset:
+            self.assertIsInstance(item, dict)
+            self.assertIn('_id', item)
+            self.assertIn('name', item)
+            self.assertIn('age', item)

@@ -10,10 +10,17 @@ from monstro.forms.fields import *  # pylint: disable=W0401,W0614
 from .exceptions import InvalidQuery
 
 
+__all__ = (
+    'Id',
+    'ForeignKey',
+    'ManyToMany'
+)
+
+
 class Id(Field):
 
     widget = widgets.Input('hidden')
-    default_error_messages = {
+    errors = {
         'invalid': 'Value must be an valid MongoDB Id'
     }
 
@@ -21,7 +28,7 @@ class Id(Field):
         kwargs['required'] = False
         super().__init__(**kwargs)
 
-    async def to_python(self, value):
+    async def deserialize(self, value):
         if isinstance(value, str):
             try:
                 return ObjectId(value)
@@ -32,71 +39,94 @@ class Id(Field):
 
         return value
 
-    async def to_internal_value(self, value):
+    async def serialize(self, value):
         return str(value)
 
 
 class ForeignKey(Field):
 
-    default_error_messages = {
-        'invalid': 'Model instance must be a {0.related_model.__name__}',
+    errors = {
+        'invalid': 'Model instance must be a {0.to.__name__}',
         'foreign_key': 'Related model not found'
     }
 
-    def __init__(self, *, related_model, related_field='_id', **kwargs):
+    def __init__(self, *, to, to_field='_id', **kwargs):
         super().__init__(**kwargs)
 
-        self.related_model = related_model
-        self.related_field = related_field
+        self.to = to
+        self.to_field = to_field
 
     def get_related_model(self):
-        if isinstance(self.related_model, str):
-            if self.related_model == 'self':
-                self.related_model = self.model
+        if isinstance(self.to, str):
+            if self.to == 'self':
+                self.to = self.model
             else:
-                self.related_model = import_object(self.related_model)
+                self.to = import_object(self.to)
 
-        return self.related_model
+        return self.to
 
-    async def to_python(self, value):
-        related_model = self.get_related_model()
+    async def deserialize(self, value):
+        model = self.get_related_model()
 
-        if isinstance(value, related_model):
+        if isinstance(value, model):
             if not value._id:
                 self.fail('foreign_key')
 
             return value
-        elif isinstance(value, str) and self.related_field == '_id':
+        elif isinstance(value, str) and self.to_field == '_id':
             try:
                 value = ObjectId(value)
             except bson.errors.InvalidId:
                 self.fail('invalid')
 
-        query = {self.related_field: value}
+        query = {self.to_field: value}
 
         try:
-            value = await related_model.objects.get(**query)
-        except related_model.DoesNotExist:
+            value = await model.objects.get(**query)
+        except model.DoesNotExist:
             self.fail('foreign_key')
         except (bson.errors.InvalidDocument, InvalidQuery):
             self.fail('invalid')
 
         return value
 
-    async def to_internal_value(self, value):
-        value = getattr(value, self.related_field)
+    async def serialize(self, value):
+        value = getattr(value, self.to_field)
 
-        if self.related_field == '_id':
+        if self.to_field == '_id':
             return str(value)
 
         return value
 
-    async def get_metadata(self):
+    async def get_options(self):
         choices = []
+        model = self.get_related_model()
 
-        async for item in self.get_related_model().objects.all():
-            choices.append((str(getattr(item, self.related_field)), str(item)))
+        async for item in model.objects.values():
+            instance = model(data=item)
+
+            try:
+                choices.append((str(item[self.to_field]), str(instance)))
+            except (AttributeError, KeyError):
+                await instance.deserialize()
+                choices.append((str(item[self.to_field]), str(instance)))
 
         self.widget = widgets.Select(choices)
 
-        return await super().get_metadata()
+        return await super().get_options()
+
+
+class ManyToMany(Array):
+
+    def __init__(self, *, to, to_field='_id', **kwargs):
+        field = ForeignKey(to=to, to_field=to_field)
+        super().__init__(field=field, **kwargs)
+
+    async def get_options(self):
+        options = await super().get_options()
+
+        widget = (await self.field.get_options())['widget']
+        widget['attrs']['multiple'] = 'multiple'
+        options['widget'] = widget
+
+        return options

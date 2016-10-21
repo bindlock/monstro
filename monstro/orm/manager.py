@@ -13,4 +13,4 @@ class Manager(object):
 
     async def create(self, **kwargs):
         instance = await self.model(data=kwargs).save()
-        return await instance.to_python()
+        return await instance.deserialize()
