@@ -1,23 +1,48 @@
 # coding=utf-8
 
-from tornado.web import url
+import re
 
-
-__all__ = ('url', 'Resolver')
+from tornado.web import URLSpec
+from tornado.util import import_object
 
 
 class Resolver(object):
 
-    def __init__(self, patterns):
+    def __init__(self, patterns, namespace=None):
         self.patterns = patterns
+        self.namespace = namespace
+
+    def __iter__(self):
+        return self.resolve()
 
     def resolve(self):
-        urls = []
+        if isinstance(self.patterns, str):
+            self.patterns = import_object(self.patterns)
 
         for pattern in self.patterns:
             if isinstance(pattern, dict):
-                urls.append(url(**pattern))
+                yield URLSpec(**pattern)
+            elif isinstance(pattern, URLSpec):
+                yield pattern
+            elif len(pattern) > 1 and isinstance(pattern[1], Resolver):
+                for pattern in self.include(*pattern):
+                    yield pattern
             else:
-                urls.append(url(*pattern))
+                yield URLSpec(*pattern)
 
-        return urls
+    def include(self, prefix, resolver):
+        prefix = prefix.rstrip('$').rstrip('/')
+
+        for url in resolver.resolve():
+            pattern = url.regex.pattern.lstrip('^').lstrip('/')
+
+            url.regex = re.compile('{}/{}'.format(prefix, pattern))
+
+            if isinstance(resolver.namespace, str):
+                url.name = '{}:{}'.format(resolver.namespace, url.name)
+
+            yield url
+
+
+def include(patterns, namespace=None):
+    return Resolver(patterns, namespace)
