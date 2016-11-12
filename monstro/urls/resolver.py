@@ -37,6 +37,7 @@ class Resolver(object):
             pattern = url.regex.pattern.lstrip('^').lstrip('/')
 
             url.regex = re.compile('{}/{}'.format(prefix, pattern))
+            url._path, url._group_count = url._find_groups()
 
             if isinstance(resolver.namespace, str):
                 url.name = '{}:{}'.format(resolver.namespace, url.name)

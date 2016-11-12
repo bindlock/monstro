@@ -62,6 +62,13 @@ class ResolverTest(unittest.TestCase):
         for url in resolver:
             self.assertEqual(pattern, url)
 
+    def test_reverse_url(self):
+        urls = ((r'^/login/$', object, {}, 'login'),)
+        resolver = Resolver(((r'^/home/', include(urls, namespace='home')),))
+        application = tornado.web.Application(resolver)
+
+        self.assertEqual('/home/login/', application.reverse_url('home:login'))
+
 class IncludeTest(unittest.TestCase):
 
     def test(self):
