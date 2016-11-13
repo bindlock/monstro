@@ -24,9 +24,10 @@ class Resolver(object):
                 yield URLSpec(**pattern)
             elif isinstance(pattern, URLSpec):
                 yield pattern
+            elif isinstance(pattern, Resolver):
+                yield from pattern.resolve()
             elif len(pattern) > 1 and isinstance(pattern[1], Resolver):
-                for pattern in self.include(*pattern):
-                    yield pattern
+                yield from self.include(*pattern)
             else:
                 yield URLSpec(*pattern)
 
@@ -37,6 +38,7 @@ class Resolver(object):
             pattern = url.regex.pattern.lstrip('^').lstrip('/')
 
             url.regex = re.compile('{}/{}'.format(prefix, pattern))
+            url._path, url._group_count = url._find_groups()
 
             if isinstance(resolver.namespace, str):
                 url.name = '{}:{}'.format(resolver.namespace, url.name)
