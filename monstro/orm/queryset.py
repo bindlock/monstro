@@ -35,8 +35,8 @@ class QuerySet(object):
     def cursor(self):
         if not self._cursor:
             self._cursor = self.collection.find(
-                self.query, skip=self.offset, limit=self.limit,
-                fields=self.fields or None, sort=self.sorts
+                self.query, self.fields or None, skip=self.offset,
+                limit=self.limit, sort=self.sorts
             )
 
         return self._cursor
