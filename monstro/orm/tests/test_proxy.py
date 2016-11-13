@@ -58,7 +58,12 @@ class MotorProxyTest(monstro.testing.AsyncTestCase):
         self.assertIsInstance(instance['__name__'], str)
 
     def test_repr(self):
-        self.assertEqual(repr(object), repr(proxy.MotorProxy(object)))
+        self.assertEqual(
+            'MotorProxy({})'.format(repr(object)),
+            repr(proxy.MotorProxy(object))
+        )
 
     def test_str(self):
-        self.assertEqual(str(object), str(proxy.MotorProxy(object)))
+        self.assertEqual(
+            'MotorProxy({})'.format(str(object)), str(proxy.MotorProxy(object))
+        )
