@@ -188,7 +188,10 @@ class ModelAPIViewTest(monstro.testing.AsyncHTTPTestCase):
         return TestView
 
     def get_app(self):
-        return tornado.web.Application([self.get_handler().get_url_spec()])
+        return tornado.web.Application(self.get_handler().get_url_spec())
+
+    def test_reverse_url(self):
+        self.assertEqual('/test/', self.get_app().reverse_url('test', ''))
 
     def test_get__empty(self):
         response = self.fetch('/test/')
@@ -209,14 +212,14 @@ class ModelAPIViewTest(monstro.testing.AsyncHTTPTestCase):
     def test_get_instance(self):
         instance = self.run_sync(self.TestModel.objects.create, value='test')
 
-        response = self.fetch('/test/{}/'.format(instance._id))
+        response = self.fetch('/test/{}'.format(instance._id))
         data = json.loads(response.body.decode('utf-8'))
 
         self.assertEqual(200, response.code)
         self.assertEqual({'value': instance.value}, data)
 
     def test_get_instance__invalid_id(self):
-        response = self.fetch('/test/invalid/')
+        response = self.fetch('/test/invalid')
         data = json.loads(response.body.decode('utf-8'))
 
         self.assertEqual(404, response.code)
@@ -226,7 +229,7 @@ class ModelAPIViewTest(monstro.testing.AsyncHTTPTestCase):
 
     def test_get_instance__not_found(self):
         instance = self.run_sync(self.TestModel.objects.create, value='test')
-        url = '/test/{}/'.format(instance._id)
+        url = '/test/{}'.format(instance._id)
         self.run_sync(instance.delete)
 
         response = self.fetch(url)
@@ -238,7 +241,7 @@ class ModelAPIViewTest(monstro.testing.AsyncHTTPTestCase):
         self.assertEqual('Object not found', data['details']['request_error'])
 
     def test_options(self):
-        response = self.fetch('/test/invalid/', method='OPTIONS')
+        response = self.fetch('/test/invalid', method='OPTIONS')
         data = json.loads(response.body.decode('utf-8'))
 
         self.assertEqual(200, response.code)
@@ -248,21 +251,24 @@ class ModelAPIViewTest(monstro.testing.AsyncHTTPTestCase):
 
     def test_post(self):
         payload = {'value': 'test'}
-        response = self.fetch('/test', method='POST', body=json.dumps(payload))
+        response = self.fetch(
+            '/test/', method='POST', body=json.dumps(payload)
+        )
 
         self.assertEqual(201, response.code)
 
         self.run_sync(self.TestModel.objects.get, **payload)
 
     def test_post__error(self):
-        payload = {}
-        response = self.fetch('/test', method='POST', body=json.dumps(payload))
+        response = self.fetch('/test/', method='POST', body=json.dumps({}))
 
         self.assertEqual(400, response.code)
 
     def test_post__validate(self):
         payload = {'value': 'wrong'}
-        response = self.fetch('/test', method='POST', body=json.dumps(payload))
+        response = self.fetch(
+            '/test/', method='POST', body=json.dumps(payload)
+        )
         data = json.loads(response.body.decode('utf-8'))
 
         self.assertEqual(400, response.code)
@@ -357,7 +363,7 @@ class ModelAPIViewWithPaginatorTest(monstro.testing.AsyncHTTPTestCase):
         return TestView
 
     def get_app(self):
-        return tornado.web.Application([self.get_handler().get_url_spec()])
+        return tornado.web.Application(self.get_handler().get_url_spec())
 
     def test_get(self):
         for __ in range(2):

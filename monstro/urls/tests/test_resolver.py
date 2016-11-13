@@ -55,12 +55,28 @@ class ResolverTest(unittest.TestCase):
         self.assertEqual(url.regex.pattern, r'^/home/login/$')
         self.assertEqual(url.name, 'home:login')
 
+    def test__with_resolver(self):
+        urls = Resolver(((r'^/login/$', object, {}, 'login'),))
+        resolver = Resolver((urls,))
+        url = list(resolver.resolve())[0]
+
+        self.assertIsInstance(url, tornado.web.url)
+        self.assertEqual(url.regex.pattern, r'^/login/$')
+        self.assertEqual(url.name, 'login')
+
     def test_iterable(self):
         pattern = tornado.web.url(r'^/login/$', object)
         resolver = Resolver((pattern,))
 
         for url in resolver:
             self.assertEqual(pattern, url)
+
+    def test_reverse_url(self):
+        urls = ((r'^/login/$', object, {}, 'login'),)
+        resolver = Resolver(((r'^/home/', include(urls, namespace='home')),))
+        application = tornado.web.Application(resolver)
+
+        self.assertEqual('/home/login/', application.reverse_url('home:login'))
 
 class IncludeTest(unittest.TestCase):
 
