@@ -3,3 +3,5 @@ omit =
   */test*
   */management/*
   */core/app.py
+exclude_lines =
+    pragma: no cover
