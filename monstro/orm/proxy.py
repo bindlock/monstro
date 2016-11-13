@@ -62,7 +62,7 @@ class MotorProxy(object):
         return self.wrap(self.instance[item])
 
     def __repr__(self):
-        return repr(self.instance)
+        return 'MotorProxy({})'.format(repr(self.instance))
 
     def __str__(self):
-        return str(self.instance)
+        return 'MotorProxy({})'.format(str(self.instance))

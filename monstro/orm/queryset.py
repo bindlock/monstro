@@ -1,6 +1,5 @@
 # coding=utf-8
 
-import asyncio
 import copy
 import logging
 
@@ -67,14 +66,6 @@ class QuerySet(object):
         return self._collection
 
     async def __aiter__(self):
-        if self.raw:
-            iterator = self.clone().cursor.__aiter__()
-
-            if asyncio.iscoroutine(iterator):
-                return await iterator
-
-            return iterator  # pragma: no cover
-
         return self.clone()
 
     async def __anext__(self):
@@ -82,8 +73,13 @@ class QuerySet(object):
             await self.validate_query()
 
         if await self.cursor.fetch_next:
-            instance = self.model(data=self.cursor.next_object())
-            return await instance.deserialize()
+            data = self.cursor.next_object()
+            print(data)
+
+            if self.raw:
+                return data
+
+            return await self.model(data=data).deserialize()
 
         raise StopAsyncIteration()
 
