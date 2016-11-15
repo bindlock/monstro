@@ -12,5 +12,4 @@ class Manager(object):
         return getattr(QuerySet(self.model), attribute)
 
     async def create(self, **kwargs):
-        instance = await self.model(data=kwargs).save()
-        return await instance.deserialize()
+        return await self.model(data=kwargs).save()
