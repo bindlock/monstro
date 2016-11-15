@@ -74,7 +74,6 @@ class QuerySet(object):
 
         if await self.cursor.fetch_next:
             data = self.cursor.next_object()
-            print(data)
 
             if self.raw:
                 return data
