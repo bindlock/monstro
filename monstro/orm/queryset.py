@@ -81,7 +81,9 @@ class QuerySet(object):
             if self.raw:
                 return data
 
-            return await self.model(data=data).deserialize(self._raw_fields)
+            return await self.model(
+                data=data, raw_fields=self._raw_fields
+            ).deserialize()
 
         raise StopAsyncIteration()
 
