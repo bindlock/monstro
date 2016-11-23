@@ -130,6 +130,9 @@ class Field(object):
     async def serialize(self, value):
         return value
 
+    async def to_db_value(self, value):
+        return await self.serialize(value)
+
     async def on_save(self, value):
         return value
 
@@ -454,13 +457,13 @@ class DateTime(Field):
 
     async def on_save(self, value):
         if self.auto_now:
-            return datetime.datetime.now()
+            return datetime.datetime.utcnow()
 
         return value
 
     async def on_create(self, value):
         if self.auto_now_on_create:
-            return datetime.datetime.now()
+            return datetime.datetime.utcnow()
 
         return value
 
@@ -481,6 +484,9 @@ class DateTime(Field):
 
     async def serialize(self, value):
         return value.isoformat()
+
+    async def to_db_value(self, value):
+        return value
 
 
 class Date(DateTime):
