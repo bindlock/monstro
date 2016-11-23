@@ -5,3 +5,4 @@ omit =
   */core/app.py
 exclude_lines =
     pragma: no cover
+    raise NotImplementedError()
