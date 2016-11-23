@@ -42,7 +42,11 @@ class UpdateAPIMixin(ModelAPIMixin):
             return self.send_error(400, details=e.error)
 
         self.set_status(200)
-        self.finish(await self.form_class(instance=instance).serialize())
+
+        form = self.form_class(
+            instance=instance, raw_fields=instance.get_raw_fields()
+        )
+        self.finish(await form.serialize())
 
     async def patch(self, *args, **kwargs):
         await self.put()

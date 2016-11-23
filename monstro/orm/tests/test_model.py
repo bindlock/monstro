@@ -27,6 +27,17 @@ class ModelTest(monstro.testing.AsyncTestCase):
 
         self.assertTrue(str(instance))
 
+    async def test_equal(self):
+        class CustomModel(model.Model):
+            __collection__ = 'test'
+
+            string = fields.String()
+
+        instance = await CustomModel.objects.create(string=uuid.uuid4().hex)
+        instance_ = await CustomModel.objects.get(string=instance.string)
+
+        self.assertEqual(instance, instance_)
+
     def test_new(self):
         class CustomModel(model.Model):
             __collection__ = 'test'
@@ -85,6 +96,19 @@ class ModelTest(monstro.testing.AsyncTestCase):
         _model = await instance.objects.get(string=instance.string)
 
         self.assertEqual(instance.string, _model.string)
+
+    async def test_to_db_value(self):
+        class CustomModel(model.Model):
+            __collection__ = 'test'
+
+            string = fields.String(default='default')
+            number = fields.Integer()
+
+        instance = CustomModel(data={'number': None}, raw_fields=['number'])
+        data = await instance.to_db_value()
+
+        self.assertEqual('default', data['string'])
+        self.assertEqual(None, data['number'])
 
     async def test_save__force(self):
         class CustomModel(model.Model):
