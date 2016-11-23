@@ -5,7 +5,7 @@ import os
 
 from setuptools import setup, find_packages
 
-VERSION = '3.4.8'
+VERSION = '3.4.9'
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
