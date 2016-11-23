@@ -86,6 +86,17 @@ class ModelTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(instance.string, _model.string)
 
+    async def test_save__force(self):
+        class CustomModel(model.Model):
+            __collection__ = 'test'
+
+            string = fields.String()
+
+        instance = CustomModel(data={'string': None})
+        await instance.save(force=True)
+
+        self.assertEqual(None, instance.string)
+
     async def test_save__on_create(self):
         class CustomModel(model.Model):
             __collection__ = 'test'

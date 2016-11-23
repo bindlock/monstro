@@ -67,12 +67,14 @@ class Model(Form, metaclass=MetaModel):
             value = self.__values__.get(name)
             self.__values__[name] = await field.on_create(value)
 
-    async def save(self):
+    async def save(self, force=False):
         if not self._id:
             await self.on_create()
 
         await self.on_save()
-        await self.validate()
+
+        if not force:
+            await self.validate()
 
         data = await self.to_db_value()
         data.pop('_id')

@@ -123,6 +123,3 @@ class Form(object, metaclass=MetaForm):
                 data[name] = None
 
         return data
-
-    async def save(self):
-        pass

@@ -87,9 +87,6 @@ class FormTest(monstro.testing.AsyncTestCase):
             {'number': 1, 'string': 'default'}, (await instance.serialize())
         )
 
-    async def test_save(self):
-        await TestForm(data={'string': '1'}).save()
-
     async def test_deserialize(self):
         instance = await TestForm(data={'number': '1'}).deserialize()
 
