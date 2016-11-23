@@ -95,6 +95,12 @@ class FormTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(1, instance.number)
 
+    async def test_deserialize__raw_fields(self):
+        instance = TestForm(data={'number': '1'})
+        await instance.deserialize(raw_fields=['number'])
+
+        self.assertEqual('1', instance.number)
+
     async def test_deserialize__wrong_value(self):
         instance = await TestForm(data={'number': 'wrong'}).deserialize()
 
@@ -110,8 +116,3 @@ class FormTest(monstro.testing.AsyncTestCase):
             instance.__fields__['string'].errors['read_only'],
             context.exception.error['string']
         )
-
-    def test_get_values(self):
-        form = TestForm(data={'string': '1', 'other': None})
-
-        self.assertEqual({'string': '1', 'number': None}, form.get_values())

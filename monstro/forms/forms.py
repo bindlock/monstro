@@ -71,19 +71,13 @@ class Form(object, metaclass=MetaForm):
 
         return metadata
 
-    def get_values(self):
-        values = {}
+    async def deserialize(self, raw_fields=None):
+        raw_fields = raw_fields or []
 
-        for name in self.__fields__:
-            values[name] = self.__values__.get(name)
-
-            if name == '_id':
-                values[name] = str(values[name])
-
-        return values
-
-    async def deserialize(self):
         for name, field in self.__fields__.items():
+            if name in raw_fields:
+                continue
+
             value = self.__values__.get(name)
 
             if value is None:

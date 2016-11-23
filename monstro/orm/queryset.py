@@ -14,7 +14,9 @@ logger = logging.getLogger('monstro')
 class QuerySet(object):
 
     def __init__(self, model, query=None, offset=0, limit=0,
-                 fields=None, sorts=None, collection=None, raw=False):
+                 fields=None, sorts=None, collection=None, raw=False,
+                 raw_fields=None):
+
         self.model = model
         self.query = query or {}
         self.offset = offset
@@ -25,6 +27,7 @@ class QuerySet(object):
         self._collection = collection
 
         self.raw = raw
+        self._raw_fields = raw_fields or []
         self._cursor = None
         self._validated = False
 
@@ -78,7 +81,7 @@ class QuerySet(object):
             if self.raw:
                 return data
 
-            return await self.model(data=data).deserialize()
+            return await self.model(data=data).deserialize(self._raw_fields)
 
         raise StopAsyncIteration()
 
@@ -89,8 +92,9 @@ class QuerySet(object):
         kwargs.setdefault('limit', self.limit)
         kwargs.setdefault('fields', copy.copy(self.fields))
         kwargs.setdefault('sorts', copy.copy(self._sorts))
-        kwargs.setdefault('raw', copy.copy(self.raw))
+        kwargs.setdefault('raw', self.raw)
         kwargs.setdefault('collection', self._collection)
+        kwargs.setdefault('raw_fields', self._raw_fields)
         return QuerySet(**kwargs)
 
     async def validate_query(self):
@@ -133,6 +137,9 @@ class QuerySet(object):
         queryset = self.only(*fields)
         queryset.raw = True
         return queryset
+
+    def raw_fields(self, *fields):
+        return self.clone(raw_fields=self._raw_fields + list(fields))
 
     async def count(self):
         return await self.clone().cursor.count(True)

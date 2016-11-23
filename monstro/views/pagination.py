@@ -27,8 +27,6 @@ class Pagination(object):
         if self.serializer:
             if isinstance(item, self.serializer):
                 return await item.serialize()
-            elif isinstance(item, dict):
-                return self.serializer(data=item).get_values()
 
             return await self.serializer(instance=item).serialize()
 
