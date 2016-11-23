@@ -63,13 +63,16 @@ class ModelTest(monstro.testing.AsyncTestCase):
             __collection__ = 'test'
 
             name = fields.String()
+            dt = fields.DateTime()
 
-        instance = CustomModel(data={'name': 'test'})
-        instance.__valid__ = True
-
-        self.assertEqual(
-            {'name': 'test', '_id': None}, await instance.serialize()
+        instance = CustomModel(
+            data={'name': 'test', 'dt': datetime.datetime.now()}
         )
+        data = await instance.serialize()
+        dt = data.pop('dt')
+
+        self.assertEqual({'name': 'test', '_id': None}, data)
+        self.assertIsInstance(dt, str)
 
     async def test_save(self):
         class CustomModel(model.Model):

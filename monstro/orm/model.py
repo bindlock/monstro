@@ -44,6 +44,19 @@ class Model(Form, metaclass=MetaModel):
     def __str__(self):
         return '{} object'.format(self.__class__.__name__)
 
+    async def to_db_value(self):
+        data = {}
+
+        for name, field in self.__fields__.items():
+            value = self.__values__.get(name)
+
+            if value is not None:
+                data[name] = await field.to_db_value(value)
+            else:
+                data[name] = None
+
+        return data
+
     async def on_save(self):
         for name, field in self.__fields__.items():
             value = self.__values__.get(name)
@@ -61,7 +74,7 @@ class Model(Form, metaclass=MetaModel):
         await self.on_save()
         await self.validate()
 
-        data = await self.serialize()
+        data = await self.to_db_value()
         data.pop('_id')
 
         if self._id:

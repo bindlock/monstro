@@ -510,6 +510,12 @@ class DateTimeTest(monstro.testing.AsyncTestCase):
             datetime.datetime
         )
 
+    async def test_to_db_value(self):
+        field = fields.DateTime()
+        datetime_ = datetime.datetime(2015, 7, 13)
+
+        self.assertEqual(datetime_, await field.to_db_value(datetime_))
+
     async def test_deserialize__wrong_format(self):
         field = fields.DateTime()
 
@@ -556,9 +562,7 @@ class TimeTest(monstro.testing.AsyncTestCase):
     async def test_serialize(self):
         field = fields.Time()
 
-        self.assertEqual(
-            '00:00:00', await field.serialize(datetime.time())
-        )
+        self.assertEqual('00:00:00', await field.serialize(datetime.time()))
 
     async def test_deserialize(self):
         field = fields.Time()

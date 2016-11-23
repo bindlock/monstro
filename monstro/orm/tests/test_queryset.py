@@ -154,3 +154,9 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
             self.assertIn('_id', item)
             self.assertIn('name', item)
             self.assertIn('age', item)
+
+    async def test_raw_fields(self):
+        queryset = self.model.objects.raw_fields('key')
+
+        async for item in queryset:
+            self.assertIsInstance(item.key, str)
