@@ -188,7 +188,7 @@ class ModelAPIViewTest(monstro.testing.AsyncHTTPTestCase):
         return TestView
 
     def get_app(self):
-        return tornado.web.Application(self.get_handler().get_url_spec())
+        return tornado.web.Application([self.get_handler().get_url_spec()])
 
     def test_reverse_url(self):
         self.assertEqual('/test/', self.get_app().reverse_url('test', ''))
@@ -363,7 +363,7 @@ class ModelAPIViewWithPaginatorTest(monstro.testing.AsyncHTTPTestCase):
         return TestView
 
     def get_app(self):
-        return tornado.web.Application(self.get_handler().get_url_spec())
+        return tornado.web.Application([self.get_handler().get_url_spec()])
 
     def test_get(self):
         for __ in range(2):
