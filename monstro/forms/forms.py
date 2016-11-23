@@ -39,9 +39,10 @@ class MetaForm(type):
 
 class Form(object, metaclass=MetaForm):
 
-    def __init__(self, *, instance=None, data=None):
+    def __init__(self, *, instance=None, data=None, raw_fields=None):
         self.__instance__ = instance
         self.__values__ = {}
+        self.__raw_fields__ = raw_fields or []
 
         data = (data or {})
 
@@ -71,11 +72,9 @@ class Form(object, metaclass=MetaForm):
 
         return metadata
 
-    async def deserialize(self, raw_fields=None):
-        raw_fields = raw_fields or []
-
+    async def deserialize(self):
         for name, field in self.__fields__.items():
-            if name in raw_fields:
+            if name in self.__raw_fields__:
                 continue
 
             value = self.__values__.get(name)
@@ -95,6 +94,9 @@ class Form(object, metaclass=MetaForm):
         self.__errors__ = {}
 
         for name, field in self.__fields__.items():
+            if name in self.__raw_fields__:
+                continue
+
             value = self.__values__.get(name)
 
             try:
@@ -116,6 +118,10 @@ class Form(object, metaclass=MetaForm):
 
         for name, field in self.__fields__.items():
             value = self.__values__.get(name)
+
+            if name in self.__raw_fields__:
+                data[name] = value
+                continue
 
             if value is not None:
                 data[name] = await field.serialize(value)

@@ -53,6 +53,13 @@ class FormTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(instance.number, 1)
 
+    async def test_validate__raw_fields(self):
+        instance = TestForm(data={'number': '1'}, raw_fields=['number'])
+
+        await instance.validate()
+
+        self.assertEqual('1', instance.number)
+
     async def test_validate__error(self):
         instance = TestForm(data={'string': 1})
 
@@ -87,14 +94,21 @@ class FormTest(monstro.testing.AsyncTestCase):
             {'number': 1, 'string': 'default'}, (await instance.serialize())
         )
 
+    async def test_serialize__raw_fields(self):
+        instance = TestForm(data={'number': None}, raw_fields=['number'])
+
+        self.assertEqual(
+            {'number': None, 'string': 'default'}, (await instance.serialize())
+        )
+
     async def test_deserialize(self):
         instance = await TestForm(data={'number': '1'}).deserialize()
 
         self.assertEqual(1, instance.number)
 
     async def test_deserialize__raw_fields(self):
-        instance = TestForm(data={'number': '1'})
-        await instance.deserialize(raw_fields=['number'])
+        instance = TestForm(data={'number': '1'}, raw_fields=['number'])
+        await instance.deserialize()
 
         self.assertEqual('1', instance.number)
 
