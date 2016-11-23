@@ -5,7 +5,6 @@ import json
 import tornado.web
 
 from monstro.views import views, mixins, pagination
-from monstro.urls import urls
 
 from . import mixins as api_mixins
 
@@ -113,15 +112,10 @@ class ModelAPIView(mixins.ListResponseMixin,
 
     @classmethod
     def get_url_spec(cls):
-        patterns = [
-            r'/{}/'.format(cls.path),
-            r'/{}/(?P<{}>\w+)'.format(cls.path, cls.lookup_field)
-        ]
-
-        for i, pattern in enumerate(patterns):
-            patterns[i] = tornado.web.url(pattern, cls, name=cls.name)
-
-        return urls(patterns)
+        return tornado.web.url(
+            r'/{}/(?P<{}>\w*)'.format(cls.path, cls.lookup_field),
+            cls, name=cls.name
+        )
 
     def get_pagination(self):
         return pagination.PageNumberPagination(self.form_class)

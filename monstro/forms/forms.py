@@ -72,6 +72,9 @@ class Form(object, metaclass=MetaForm):
 
         return metadata
 
+    def get_raw_fields(self):
+        return self.__raw_fields__
+
     async def deserialize(self):
         for name, field in self.__fields__.items():
             if name in self.__raw_fields__:
