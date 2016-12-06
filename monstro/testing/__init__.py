@@ -39,9 +39,13 @@ class AsyncTestCaseMixin(object):
 
     def async_method_wrapper(self, function):
         def wrapper(*args, **kwargs):
-            return self.get_new_ioloop().run_sync(
-                lambda: function(*args, **kwargs)
-            )
+            ioloop = self.get_new_ioloop()
+
+            try:
+                return ioloop.run_sync(lambda: function(*args, **kwargs))
+            finally:
+                ioloop._callbacks = []
+                ioloop._timeouts = []
 
         return wrapper
 
