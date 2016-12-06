@@ -1,5 +1,3 @@
-# coding=utf-8
-
 import uuid
 import random
 
@@ -41,16 +39,16 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
                 name='test{}'.format(i), age=0, key=self.related
             )
 
-    async def test_validate_query(self):
-        queryset = self.model.objects.filter(age='1')
-
-        self.assertEqual({'age': 1}, await queryset.validate_query())
-
-    async def test_validate_query__invalid_field(self):
+    async def test_validate__invalid_field(self):
         queryset = self.model.objects.filter(test='1')
 
         with self.assertRaises(exceptions.InvalidQuery):
-            await queryset.validate_query()
+            queryset.validate()
+
+    async def test_validate__validation_error(self):
+        queryset = self.model.objects.filter(key=None)
+
+        self.assertEqual({'key': None}, queryset.validate())
 
     async def test_cursor_method(self):
         queryset = self.model.objects.filter()
@@ -109,7 +107,7 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
     async def test_slice_index(self):
         number = random.randint(5, 7)
 
-        instance = await self.model.objects.filter()[number].get()
+        instance = await self.model.objects.filter()[number]
 
         self.assertEqual('test{}'.format(number), instance.name)
 
@@ -125,7 +123,7 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
         self.assertIsInstance(queryset.cursor, MotorProxy)
 
     async def test_iterable(self):
-        queryset = self.model.objects.filter(key={'$in': ['test', 't']})
+        queryset = self.model.objects.filter(key__in=['test', 't'])
         items = []
 
         async for item in queryset:
@@ -159,6 +157,4 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
         choices = ['test', 't']
         queryset = self.model.objects.filter(key__in=choices)
 
-        self.assertEqual(
-            {'key': {'$in': choices}}, await queryset.validate_query()
-        )
+        self.assertEqual({'key': {'$in': choices}}, queryset.validate())

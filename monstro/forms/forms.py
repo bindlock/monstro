@@ -3,7 +3,7 @@
 import collections
 
 from . import exceptions
-from .fields import Field
+from .fields import Field, Method
 
 
 class MetaForm(type):
@@ -122,12 +122,19 @@ class Form(object, metaclass=MetaForm):
         for name, field in self.__fields__.items():
             value = self.__values__.get(name)
 
+            if isinstance(field, Method):
+                function = getattr(self, 'get_{}'.format(name), None)
+
+                if function:
+                    data[name] = await function()
+                    continue
+
             if name in self.__raw_fields__:
                 data[name] = value
                 continue
 
             if value is not None:
-                data[name] = await field.serialize(value)
+                data[name] = field.serialize(value)
             else:
                 data[name] = None
 

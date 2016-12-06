@@ -39,7 +39,7 @@ class Id(Field):
 
         return value
 
-    async def serialize(self, value):
+    def serialize(self, value):
         return str(value)
 
 
@@ -90,7 +90,7 @@ class ForeignKey(Field):
 
         return value
 
-    async def serialize(self, value):
+    def serialize(self, value):
         value = getattr(value, self.to_field)
 
         if self.to_field == '_id':
