@@ -1,5 +1,3 @@
-# coding=utf-8
-
 import datetime
 
 import monstro.testing
@@ -570,3 +568,16 @@ class TimeTest(monstro.testing.AsyncTestCase):
         self.assertIsInstance(
             await field.deserialize('14:08:12'), datetime.time
         )
+
+
+class FunctionTest(monstro.testing.AsyncTestCase):
+
+    async def test_serialize(self):
+        value = datetime.datetime.now()
+
+        async def function():
+            return value
+
+        field = fields.Function(function=function)
+
+        self.assertEqual(value, await field.serialize())

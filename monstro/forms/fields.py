@@ -1,8 +1,6 @@
-# coding=utf-8
-
-import re
-import json
 import datetime
+import json
+import re
 import urllib.parse
 
 from . import widgets
@@ -26,7 +24,8 @@ __all__ = (
     'JSON',
     'Date',
     'Time',
-    'DateTime'
+    'DateTime',
+    'Function'
 )
 
 
@@ -513,3 +512,17 @@ class Time(DateTime):
 
     async def deserialize(self, value):
         return (await super().deserialize(value)).time()
+
+
+class Function(Field):
+
+    def __init__(self, *args, function, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.read_only = True
+        self.required = False
+
+        self.function = function
+
+    async def serialize(self, *args, **kwargs):
+        return await self.function()
