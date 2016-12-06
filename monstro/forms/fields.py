@@ -1,8 +1,6 @@
-# coding=utf-8
-
-import re
-import json
 import datetime
+import json
+import re
 import urllib.parse
 
 from . import widgets
@@ -26,7 +24,8 @@ __all__ = (
     'JSON',
     'Date',
     'Time',
-    'DateTime'
+    'DateTime',
+    'Method'
 )
 
 
@@ -127,11 +126,11 @@ class Field(object):
     async def deserialize(self, value):
         return value
 
-    async def serialize(self, value):
+    def serialize(self, value):
         return value
 
     async def to_db_value(self, value):
-        return await self.serialize(value)
+        return self.serialize(value)
 
     async def on_save(self, value):
         return value
@@ -151,7 +150,7 @@ class Field(object):
         }
 
         if not (self._default is None or callable(self._default)):
-            options['default'] = await self.serialize(self._default)
+            options['default'] = self.serialize(self._default)
 
         if self.widget:
             options['widget'] = self.widget.get_options()
@@ -307,12 +306,12 @@ class Array(Type):
 
         return value
 
-    async def serialize(self, value):
+    def serialize(self, value):
         if self.field:
             values = []
 
             for item in value:
-                values.append(await self.field.serialize(item))
+                values.append(self.field.serialize(item))
 
             return values
 
@@ -482,7 +481,7 @@ class DateTime(Field):
 
         return value
 
-    async def serialize(self, value):
+    def serialize(self, value):
         return value.isoformat()
 
     async def to_db_value(self, value):
@@ -513,3 +512,12 @@ class Time(DateTime):
 
     async def deserialize(self, value):
         return (await super().deserialize(value)).time()
+
+
+class Method(Field):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.read_only = True
+        self.required = False

@@ -130,7 +130,7 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
     async def test_serialize__id(self):
         field = ForeignKey(to=self.model)
 
-        value = await field.serialize(self.instance)
+        value = field.serialize(self.instance)
 
         self.assertEqual(str(self.instance._id), value)
 
@@ -228,7 +228,7 @@ class ManyToManyTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             [instance.name for instance in instances],
-            await field.serialize(instances)
+            field.serialize(instances)
         )
 
     async def test_get_options(self):

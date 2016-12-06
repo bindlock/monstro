@@ -1,13 +1,9 @@
-# coding=utf-8
-
 import monstro.testing
 
 from monstro.forms import fields, forms, exceptions
 
 
 class TestForm(forms.Form):
-
-    __collection__ = 'test'
 
     string = fields.String(
         label='Label', help_text='Help', default='default', read_only=True
@@ -93,6 +89,18 @@ class FormTest(monstro.testing.AsyncTestCase):
         self.assertEqual(
             {'number': 1, 'string': 'default'}, (await instance.serialize())
         )
+
+    async def test_serialize__function_field(self):
+
+        class Form(forms.Form):
+            function = fields.Method()
+
+            async def get_function(self):
+                return self
+
+        instance = Form()
+
+        self.assertEqual({'function': instance}, (await instance.serialize()))
 
     async def test_serialize__raw_fields(self):
         instance = TestForm(data={'number': None}, raw_fields=['number'])

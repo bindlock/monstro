@@ -1,14 +1,8 @@
-# coding=utf-8
-
 import copy
-import logging
 
 import pymongo
 
 from . import db, exceptions
-
-
-logger = logging.getLogger('monstro')
 
 
 class QuerySet(object):
@@ -29,7 +23,6 @@ class QuerySet(object):
         self.raw = raw
         self._raw_fields = raw_fields or []
         self._cursor = None
-        self._validated = False
 
     def __getattr__(self, attribute):
         return getattr(self.clone().cursor, attribute)
@@ -37,6 +30,8 @@ class QuerySet(object):
     @property
     def cursor(self):
         if not self._cursor:
+            self.validate()
+
             self._cursor = self.collection.find(
                 self.query, self.fields or None, skip=self.offset,
                 limit=self.limit, sort=self.sorts
@@ -72,9 +67,6 @@ class QuerySet(object):
         return self.clone()
 
     async def __anext__(self):
-        if not self._validated:
-            await self.validate_query()
-
         if await self.cursor.fetch_next:
             data = self.cursor.next_object()
 
@@ -89,7 +81,7 @@ class QuerySet(object):
 
     def clone(self, **kwargs):
         kwargs.setdefault('model', self.model)
-        kwargs.setdefault('query', copy.deepcopy(self.query))
+        kwargs.setdefault('query', copy.copy(self.query))
         kwargs.setdefault('offset', self.offset)
         kwargs.setdefault('limit', self.limit)
         kwargs.setdefault('fields', copy.copy(self.fields))
@@ -99,28 +91,27 @@ class QuerySet(object):
         kwargs.setdefault('raw_fields', self._raw_fields)
         return QuerySet(**kwargs)
 
-    async def validate_query(self):
+    def validate(self):
+        query = {}
+
         for key, value in self.query.items():
-            if isinstance(value, dict):
-                if any(key.startswith('$') for key in value):
-                    continue
+            if '__' in key:
+                key, suffix = key.split('__')
+                value = {'${}'.format(suffix): value}
+            elif not (key.startswith('$') or key == '_id'):
+                try:
+                    value = self.model.__fields__[key].serialize(value)
+                except KeyError:
+                    raise exceptions.InvalidQuery(
+                        '{} has not field {}'.format(self.model, key)
+                    )
+                except:  # pylint: disable=W0702
+                    pass
 
-            try:
-                field = self.model.__fields__[key]
-                value = await field.deserialize(value)
 
-                if key != '_id':
-                    value = await field.serialize(value)
-            except self.model.ValidationError as e:
-                logger.warning('Invalid query: {}'.format(e))
-            except KeyError:
-                raise exceptions.InvalidQuery(
-                    '{} has not field {}'.format(self.model, key)
-                )
+            query[key] = value
 
-            self.query[key] = value
-
-        self._validated = True
+        self.query = query
 
         return self.query
 
@@ -148,7 +139,6 @@ class QuerySet(object):
 
     async def get(self, **query):
         self = self.filter(**query)
-        await self.validate_query()
         self.limit = 1
 
         async for item in self:
@@ -183,5 +173,6 @@ class QuerySet(object):
         else:
             self.offset = item
             self.limit = 1
+            return self.get()
 
         return self
