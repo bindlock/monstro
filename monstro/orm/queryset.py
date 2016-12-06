@@ -100,26 +100,30 @@ class QuerySet(object):
         return QuerySet(**kwargs)
 
     async def validate_query(self):
+        query = {}
+
         for key, value in self.query.items():
-            if isinstance(value, dict):
-                if any(key.startswith('$') for key in value):
-                    continue
 
-            try:
-                field = self.model.__fields__[key]
-                value = await field.deserialize(value)
+            if '__' in key:
+                key, suffix = key.split('__')
+                value = {'${}'.format(suffix): value}
+            elif not key.startswith('$'):
+                try:
+                    field = self.model.__fields__[key]
+                    value = await field.deserialize(value)
 
-                if key != '_id':
-                    value = await field.serialize(value)
-            except self.model.ValidationError as e:
-                logger.warning('Invalid query: {}'.format(e))
-            except KeyError:
-                raise exceptions.InvalidQuery(
-                    '{} has not field {}'.format(self.model, key)
-                )
+                    if key != '_id':
+                        value = await field.serialize(value)
+                except self.model.ValidationError as e:
+                    logger.warning('Invalid query: {}'.format(e))
+                except KeyError:
+                    raise exceptions.InvalidQuery(
+                        '{} has not field {}'.format(self.model, key)
+                    )
 
-            self.query[key] = value
+            query[key] = value
 
+        self.query = query
         self._validated = True
 
         return self.query

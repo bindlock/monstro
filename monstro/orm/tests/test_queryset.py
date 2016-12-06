@@ -46,12 +46,6 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual({'age': 1}, await queryset.validate_query())
 
-    async def test_validate__foreign_key(self):
-        query = {'key': {'$in': ['test']}}
-        queryset = self.model.objects.filter(**query)
-
-        self.assertEqual(query, await queryset.validate_query())
-
     async def test_validate_query__invalid_field(self):
         queryset = self.model.objects.filter(test='1')
 
@@ -160,3 +154,11 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
 
         async for item in queryset:
             self.assertIsInstance(item.key, str)
+
+    async def test_suffix_query(self):
+        choices = ['test', 't']
+        queryset = self.model.objects.filter(key__in=choices)
+
+        self.assertEqual(
+            {'key': {'$in': choices}}, await queryset.validate_query()
+        )
