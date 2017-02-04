@@ -50,6 +50,13 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual({'key': None}, queryset.validate())
 
+    def test_validate__nested_query(self):
+        queryset = self.model.objects.filter(name__lte='', name__gte='')
+
+        self.assertEqual(
+            {'name': {'$gte': '', '$lte': ''}}, queryset.validate()
+        )
+
     async def test_cursor_method(self):
         queryset = self.model.objects.filter()
 
