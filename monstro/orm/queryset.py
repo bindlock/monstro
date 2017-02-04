@@ -108,8 +108,10 @@ class QuerySet(object):
                 except:  # pylint: disable=W0702
                     pass
 
-
-            query[key] = value
+            if isinstance(query.get(key), dict):
+                query[key].update(value)
+            else:
+                query[key] = value
 
         self.query = query
 
