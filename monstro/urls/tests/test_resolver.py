@@ -1,5 +1,3 @@
-# coding=utf-8
-
 import unittest
 
 import tornado.web
@@ -52,7 +50,7 @@ class ResolverTest(unittest.TestCase):
         url = list(resolver.resolve())[0]
 
         self.assertIsInstance(url, tornado.web.url)
-        self.assertEqual(url.regex.pattern, r'^/home/login/$')
+        self.assertEqual(url.matcher.regex.pattern, r'^/home/login/$')
         self.assertEqual(url.name, 'home:login')
 
     def test__with_resolver(self):
@@ -61,7 +59,7 @@ class ResolverTest(unittest.TestCase):
         url = list(resolver.resolve())[0]
 
         self.assertIsInstance(url, tornado.web.url)
-        self.assertEqual(url.regex.pattern, r'^/login/$')
+        self.assertEqual(url.matcher.regex.pattern, r'^/login/$')
         self.assertEqual(url.name, 'login')
 
     def test_iterable(self):

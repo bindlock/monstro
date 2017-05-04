@@ -1,9 +1,7 @@
-# coding=utf-8
-
 import re
 
-from tornado.web import URLSpec
 from tornado.util import import_object
+from tornado.web import URLSpec
 
 
 class Resolver(object):
@@ -35,13 +33,16 @@ class Resolver(object):
         prefix = prefix.rstrip('$').rstrip('/')
 
         for url in resolver.resolve():
-            pattern = url.regex.pattern.lstrip('^').lstrip('/')
+            matcher = url.matcher
+            pattern = matcher.regex.pattern.lstrip('^').lstrip('/')
 
-            url.regex = re.compile('{}/{}'.format(prefix, pattern))
-            url._path, url._group_count = url._find_groups()
+            matcher.regex = re.compile('{}/{}'.format(prefix, pattern))
+            matcher._path, matcher._group_count = matcher._find_groups()
 
             if isinstance(resolver.namespace, str):
                 url.name = '{}:{}'.format(resolver.namespace, url.name)
+
+            print(url.matcher._path)
 
             yield url
 

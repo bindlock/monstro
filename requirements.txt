@@ -1,2 +1,2 @@
 motor
-tornado
+tornado<4.6
