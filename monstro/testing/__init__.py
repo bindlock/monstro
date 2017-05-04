@@ -1,5 +1,3 @@
-# coding=utf-8
-
 import asyncio
 
 import tornado.ioloop
@@ -41,11 +39,7 @@ class AsyncTestCaseMixin(object):
         def wrapper(*args, **kwargs):
             ioloop = self.get_new_ioloop()
 
-            try:
-                return ioloop.run_sync(lambda: function(*args, **kwargs))
-            finally:
-                ioloop._callbacks = []
-                ioloop._timeouts = []
+            return ioloop.run_sync(lambda: function(*args, **kwargs))
 
         return wrapper
 
