@@ -1,7 +1,4 @@
-# coding=utf-8
-
-
-class Authentication(object):
+class Authenticator(object):
 
     def get_credentials(self, view):
         raise NotImplementedError()
@@ -10,7 +7,7 @@ class Authentication(object):
         raise NotImplementedError()
 
 
-class ModelAuthenticationMixin(object):
+class ModelAuthenticatorMixin(object):
 
     def __init__(self, model, lookup_field):
         self.model = model
@@ -30,7 +27,7 @@ class ModelAuthenticationMixin(object):
             return None
 
 
-class CookieAuthentication(ModelAuthenticationMixin, Authentication):
+class CookieAuthenticator(ModelAuthenticatorMixin, Authenticator):
 
     def __init__(self, *args, cookie_name='user', **kwargs):
         super().__init__(*args, **kwargs)
@@ -40,7 +37,7 @@ class CookieAuthentication(ModelAuthenticationMixin, Authentication):
         return view.get_secure_cookie(self.cookie_name)
 
 
-class HeaderAuthentication(ModelAuthenticationMixin, Authentication):
+class HeaderAuthenticator(ModelAuthenticatorMixin, Authenticator):
 
     def __init__(self, *args, header_name='Authorization', **kwargs):
         super().__init__(*args, **kwargs)

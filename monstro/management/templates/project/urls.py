@@ -1,5 +1,3 @@
-# coding=utf-8
-
 from monstro.utils.urls import include
 
 

@@ -1,9 +1,7 @@
-# coding=utf-8
-
 import unittest
-from monstro.utils import Choices
 
 from monstro.forms import widgets
+from monstro.utils import Choices
 
 
 class WidgetTest(unittest.TestCase):

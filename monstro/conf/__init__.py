@@ -1,5 +1,3 @@
-# coding=utf-8
-
 import os
 import importlib
 
@@ -37,7 +35,7 @@ async def _import_settings_class():
         )
 
     settings_class = import_object(settings_path)
-    await SettingsSchema(instance=settings_class).validate()
+    await SettingsSchema(data=dict(settings_class.__dict__)).validate()
 
     return settings_class
 

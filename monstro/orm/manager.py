@@ -1,5 +1,3 @@
-# coding=utf-8
-
 from .queryset import QuerySet
 
 
@@ -12,4 +10,4 @@ class Manager(object):
         return getattr(QuerySet(self.model), attribute)
 
     async def create(self, **kwargs):
-        return await self.model(data=kwargs).save()
+        return await self.model(**kwargs).save()

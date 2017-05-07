@@ -1,73 +1,57 @@
 import monstro.testing
 
-from monstro.forms import fields, forms, exceptions
+from monstro import forms, orm
 
 
 class TestForm(forms.Form):
 
-    string = fields.String(
+    string = forms.String(
         label='Label', help_text='Help', default='default', read_only=True
     )
-    number = fields.Integer()
+    number = forms.Integer()
+
+
+class TestModel(orm.Model):
+
+    string = orm.String(default='default')
+    number = orm.Integer()
+
+    class Meta:
+        collection = 'test'
+
+
+class TestModelForm(forms.ModelForm):
+
+    float = orm.Float()
+
+    class Meta:
+        model = TestModel
+        fields = ('string',)
 
 
 class FormTest(monstro.testing.AsyncTestCase):
 
-    def test_init__with_data(self):
-        instance = TestForm(data={'name': 'test'})
-
-        self.assertEqual(
-            {'string': 'default', 'number': None}, instance.__values__
-        )
-
-    def test_class_name(self):
-        self.assertEqual('TestForm', TestForm.__name__)
-
-    def test_init__with_instance(self):
-        instance = TestForm(instance=type('Object', (object,), {'number': 1}))
-
-        self.assertEqual(instance.__values__['number'], 1)
-
     def test_new(self):
-        self.assertIsInstance(TestForm.__fields__['string'], fields.String)
-        self.assertIsInstance(TestForm.__fields__['number'], fields.Integer)
-
-    def test_set_value(self):
-        instance = TestForm()
-        instance.string = 'test'
-
-        self.assertEqual(instance.string, 'test')
-
-    def test_getattr__attribute_error(self):
-        with self.assertRaises(AttributeError):
-            TestForm().none()
+        self.assertIsInstance(TestForm.Meta.fields['string'], forms.String)
+        self.assertIsInstance(TestForm.Meta.fields['number'], forms.Integer)
 
     async def test_validate(self):
         instance = TestForm(data={'number': '1'})
 
         await instance.validate()
 
-        self.assertEqual(instance.number, 1)
-
-    async def test_validate__raw_fields(self):
-        instance = TestForm(data={'number': '1'}, raw_fields=['number'])
-
-        await instance.validate()
-
-        self.assertEqual('1', instance.number)
+        self.assertEqual(instance.data['number'], 1)
 
     async def test_validate__error(self):
         instance = TestForm(data={'string': 1})
 
-        with self.assertRaises(exceptions.ValidationError) as context:
+        with self.assertRaises(forms.ValidationError) as context:
             await instance.validate()
 
         self.assertIn('string', context.exception.error)
-        self.assertIn('string', instance.__errors__)
+        self.assertIn('string', instance.errors)
 
     async def test_get_options(self):
-        instance = TestForm()
-
         self.assertEqual(
             {
                 'name': 'string',
@@ -80,58 +64,28 @@ class FormTest(monstro.testing.AsyncTestCase):
                     'attrs': {'type': 'text'},
                     'tag': 'input',
                 }
-            }, (await instance.get_options())[0]
+            }, (await TestForm.get_options())[0]
         )
 
-    async def test_serialize(self):
-        instance = await TestForm(data={'number': '1'}).deserialize()
 
+class ModelFormTest(monstro.testing.AsyncTestCase):
+
+    def test_new(self):
         self.assertEqual(
-            {'number': 1, 'string': 'default'}, (await instance.serialize())
+            TestModelForm.Meta.fields['string'],  # pylint:disable=E1126
+            TestModel.Meta.fields['string']
         )
 
-    async def test_serialize__function_field(self):
+        self.assertNotIn('number', TestModelForm.Meta.fields)
+        self.assertIsInstance(TestModelForm.Meta.fields['float'], orm.Float)  # pylint:disable=E1126
 
-        class Form(forms.Form):
-            function = fields.Method()
+    async def test_validate__read_only(self):
+        TestModelForm.Meta.fields['string'].read_only = True  # pylint:disable=E1126
+        instance = TestModelForm(data={'float': '1', 'string': 'value'})
 
-            async def get_function(self):
-                return self
-
-        instance = Form()
-
-        self.assertEqual({'function': instance}, (await instance.serialize()))
-
-    async def test_serialize__raw_fields(self):
-        instance = TestForm(data={'number': None}, raw_fields=['number'])
+        await instance.validate()
 
         self.assertEqual(
-            {'number': None, 'string': 'default'}, (await instance.serialize())
-        )
-
-    async def test_deserialize(self):
-        instance = await TestForm(data={'number': '1'}).deserialize()
-
-        self.assertEqual(1, instance.number)
-
-    async def test_deserialize__raw_fields(self):
-        instance = TestForm(data={'number': '1'}, raw_fields=['number'])
-        await instance.deserialize()
-
-        self.assertEqual('1', instance.number)
-
-    async def test_deserialize__wrong_value(self):
-        instance = await TestForm(data={'number': 'wrong'}).deserialize()
-
-        self.assertEqual(None, instance.number)
-
-    async def test__read_only(self):
-        instance = TestForm(data={'string': '1'})
-
-        with self.assertRaises(exceptions.ValidationError) as context:
-            await instance.validate()
-
-        self.assertEqual(
-            instance.__fields__['string'].errors['read_only'],
-            context.exception.error['string']
+            instance.data['string'],
+            TestForm.Meta.fields['string'].default
         )

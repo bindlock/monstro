@@ -1,6 +1,3 @@
-# coding=utf-8
-
-
 def Or(query):
     return {'$or': [{key: value} for key, value in query.items()]}
 

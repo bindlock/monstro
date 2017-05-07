@@ -1,10 +1,6 @@
-# coding=utf-8
-
-
 class ModelAPIMixin(object):
 
     async def options(self, *args, **kwargs):
-        self.set_status(200)
         self.finish({
             'fields': await self.form_class.get_options(),
             'lookup_field': self.lookup_field,
@@ -16,48 +12,43 @@ class ModelAPIMixin(object):
 class CreateAPIMixin(ModelAPIMixin):
 
     async def post(self, *args, **kwargs):
+        form = (await self.get_form_class())(data=self.data)
+
         try:
-            instance = await self.model.objects.create(**self.data)
-        except self.model.ValidationError as e:
+            await form.validate()
+            await form.save()
+        except form.ValidationError as e:
             if isinstance(e.error, str):
                 return self.send_error(400, reason=e.error)
 
             return self.send_error(400, details=e.error)
 
         self.set_status(201)
-        self.finish(await self.form_class(instance=instance).serialize())
+        self.finish(await form.serialize())
 
 
 class UpdateAPIMixin(ModelAPIMixin):
 
     async def put(self, *args, **kwargs):
         instance = await self.get_object()
+        form = (await self.get_form_class())(instance=instance, data=self.data)
 
         try:
-            await instance.update(**self.data)
-        except self.model.ValidationError as e:
+            await form.validate()
+            await form.save()
+        except form.ValidationError as e:
             if isinstance(e.error, str):
                 return self.send_error(400, reason=e.error)
 
             return self.send_error(400, details=e.error)
 
-        self.set_status(200)
-
-        form = self.form_class(
-            instance=instance, raw_fields=instance.get_raw_fields()
-        )
         self.finish(await form.serialize())
 
     async def patch(self, *args, **kwargs):
-        await self.put()
+        await self.put(*args, **kwargs)
 
 
 class DeleteAPIMixin(ModelAPIMixin):
 
     async def delete(self, *args, **kwargs):
-        instance = await self.get_object()
-
-        await instance.delete()
-
-        self.set_status(200)
-        self.finish({})
+        await (await self.get_object()).delete()

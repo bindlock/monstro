@@ -1,8 +1,3 @@
-# coding=utf-8
-
-from .authentication import HeaderAuthentication, CookieAuthentication
-from .pagination import PageNumberPagination, LimitOffsetPagination
-from .views import (
-    View, ListView, TemplateView, DetailView, FormView, CreateView, UpdateView,
-    RedirectView, DeleteView
-)
+from .authenticators import CookieAuthenticator, HeaderAuthenticator
+from .paginators import LimitOffsetPaginator, PageNumberPaginator
+from .views import *  # pylint:disable=W0401

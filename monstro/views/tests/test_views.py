@@ -1,26 +1,31 @@
-# coding=utf-8
-
 from unittest import mock
 import urllib
 
 import tornado.web
 
-import monstro.testing
-from monstro.forms import String
-from monstro.orm import Model
-
+from monstro import forms, orm
 from monstro.views import (
-    View, ListView, TemplateView, DetailView, FormView, CreateView, UpdateView,
-    RedirectView, DeleteView
+    View, ListView, TemplateView, DetailView, FormView,
+    CreateView, UpdateView, RedirectView, DeleteView
 )
-from monstro.views.authentication import CookieAuthentication
+from monstro.views.authenticators import CookieAuthenticator
+import monstro.testing
 
 
-class User(Model):
+class User(orm.Model):
 
-    __collection__ = 'users'
+    value = orm.String()
 
-    value = String()
+    class Meta:
+        collection = 'users'
+
+
+class UserForm(forms.ModelForm):
+
+    value = forms.String()
+
+    class Meta:
+        model = User
 
 
 class RedirectViewTest(monstro.testing.AsyncHTTPTestCase):
@@ -41,26 +46,21 @@ class RedirectViewTest(monstro.testing.AsyncHTTPTestCase):
 
 class ViewTest(monstro.testing.AsyncHTTPTestCase):
 
-    class TestAuthView(View):
+    class TestView(View):
 
-        authentication = CookieAuthentication(User, 'value')
+        authenticators = (CookieAuthenticator(User, 'value'),)
 
-        @tornado.web.authenticated
-        def options(self):
+        async def get(self):
+            self.write(self.request.method)
+
+        @View.authenticated('/')
+        async def options(self):
             self.write(self.request.method)
 
     def get_app(self):
-
-        class TestView(View):
-
-            def get(self):
-                self.write(self.request.method)
-
         return tornado.web.Application(
-            [
-                tornado.web.url(r'/', TestView),
-                tornado.web.url(r'/auth', self.TestAuthView)
-            ], cookie_secret='test', login_url='/'
+            [tornado.web.url(r'/', self.TestView)],
+            cookie_secret='test'
         )
 
     def test_get(self):
@@ -71,17 +71,18 @@ class ViewTest(monstro.testing.AsyncHTTPTestCase):
 
     def test_get_auth(self):
         user = self.run_sync(User.objects.create, value='test')
-        with mock.patch.object(self.TestAuthView, 'get_secure_cookie') as m:
+
+        with mock.patch.object(self.TestView, 'get_secure_cookie') as m:
             m.return_value = user.value
-            response = self.fetch('/auth', method='OPTIONS')
+            response = self.fetch('/', method='OPTIONS')
 
         self.assertEqual(200, response.code)
         self.assertEqual('OPTIONS', response.body.decode('utf-8'))
 
     def test_get_auth__error(self):
-        response = self.fetch('/auth', method='OPTIONS')
+        response = self.fetch('/', method='OPTIONS', follow_redirects=False)
 
-        self.assertEqual(401, response.code)
+        self.assertEqual(302, response.code)
 
 
 class TemplateViewTest(monstro.testing.AsyncHTTPTestCase):
@@ -177,9 +178,13 @@ class FormViewTest(monstro.testing.AsyncHTTPTestCase):
 
     class TestView(FormView):
 
-        form_class = User
+        form_class = UserForm
         template_name = 'index.html'
         redirect_url = '/'
+
+        async def form_valid(self, form):
+            await form.save()
+            return await super().form_valid(form)
 
     def get_app(self):
         return tornado.web.Application(
@@ -254,7 +259,7 @@ class UpdateViewTest(monstro.testing.AsyncHTTPTestCase):
 
     drop_database_on_finish = True
 
-    class TestView(UpdateView):
+    class TestView(UpdateView):  # pylint:disable=R0901
 
         model = User
         template_name = 'index.html'
@@ -298,10 +303,12 @@ class DeleteViewTest(monstro.testing.AsyncHTTPTestCase):
         user = self.run_sync(User.objects.create, value='test')
 
         response = self.fetch(
-            '/{}'.format(user.value), method='DELETE', follow_redirects=False
+            '/{}'.format(user.value),
+            method='DELETE',
+            follow_redirects=False
         )
 
-        self.assertEqual(302, response.code)
+        self.assertEqual(301, response.code)
 
         with self.assertRaises(User.DoesNotExist):
             self.run_sync(User.objects.get, value=user.value)

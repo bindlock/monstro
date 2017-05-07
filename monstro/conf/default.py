@@ -1,6 +1,3 @@
-# coding=utf-8
-
-
 class Settings(object):
 
     secret_key = 'default'

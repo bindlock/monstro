@@ -1,7 +1,5 @@
-# coding=utf-8
-
 import code
 
 
-def execute(args):
+def execute(*args):
     code.interact()

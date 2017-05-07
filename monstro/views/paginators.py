@@ -1,17 +1,15 @@
-# coding=utf-8
-
 import math
 
 
 DEFAULT_LIMIT = 50
 
 
-class Pagination(object):
+class Paginator(object):
 
     query_keys = {}
 
-    def __init__(self, serializer=None, query_keys=None):
-        self.serializer = serializer
+    def __init__(self, form=None, query_keys=None):
+        self.form = form
         self.query_keys = query_keys or self.query_keys
 
     def bind(self, **kwargs):
@@ -23,41 +21,35 @@ class Pagination(object):
     def get_limit(self):
         raise NotImplementedError()
 
-    async def serialize(self, item):
-        if self.serializer:
-            if isinstance(item, self.serializer):
-                return await item.serialize()
-
-            return await self.serializer(instance=item).serialize()
-
-        return item
-
     async def paginate(self, queryset):
         offset = self.get_offset()
         limit = self.get_limit()
         size = limit - offset
 
-        count = await queryset.count()
+        number = await queryset.count()
 
         pages = {}
         pages['current'] = int(math.ceil(float(offset) / size)) + 1
-        pages['count'] = int(math.ceil(float(count) / size))
+        pages['total'] = int(math.ceil(float(number) / size))
 
         if pages['current'] > 1:
             pages['previous'] = pages['current'] - 1
 
-        if pages['current'] < pages['count']:
+        if pages['current'] < pages['total']:
             pages['next'] = pages['current'] + 1
 
         items = []
 
         async for instance in queryset[offset:limit]:
-            items.append(await self.serialize(instance))
+            if self.form:
+                instance = await self.form(instance=instance).serialize()
+
+            items.append(instance)
 
         return {'pages': pages, 'items': items}
 
 
-class PageNumberPagination(Pagination):
+class PageNumberPaginator(Paginator):
 
     query_keys = {
         'page': 'page',
@@ -75,7 +67,7 @@ class PageNumberPagination(Pagination):
         return self.page * self.count
 
 
-class LimitOffsetPagination(Pagination):
+class LimitOffsetPaginator(Paginator):
 
     query_keys = {
         'limit': 'limit',

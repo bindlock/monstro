@@ -30,8 +30,6 @@ class QuerySet(object):
     @property
     def cursor(self):
         if not self._cursor:
-            self.validate()
-
             self._cursor = self.collection.find(
                 self.query, self.fields or None, skip=self.offset,
                 limit=self.limit, sort=self.sorts
@@ -44,7 +42,7 @@ class QuerySet(object):
         sorts = []
 
         for sort in self._sorts:
-            if sort.lstrip('-') not in self.model.__fields__:
+            if sort.lstrip('-') not in self.model.Meta.fields:
                 raise exceptions.InvalidQuery(
                     '{} has not field {}'.format(self.model, sort)
                 )
@@ -58,13 +56,12 @@ class QuerySet(object):
 
     @property
     def collection(self):
-        if not self._collection:
-            self._collection = db.database[self.model.__collection__]
-
-        return self._collection
+        return db.database[self.model.Meta.collection]
 
     async def __aiter__(self):
-        return self.clone()
+        clone = self.clone()
+        await clone.validate()
+        return clone
 
     async def __anext__(self):
         if await self.cursor.fetch_next:
@@ -73,9 +70,7 @@ class QuerySet(object):
             if self.raw:
                 return data
 
-            return await self.model(
-                data=data, raw_fields=self._raw_fields
-            ).deserialize()
+            return await self.model(**data).deserialize()
 
         raise StopAsyncIteration()
 
@@ -91,7 +86,7 @@ class QuerySet(object):
         kwargs.setdefault('raw_fields', self._raw_fields)
         return QuerySet(**kwargs)
 
-    def validate(self):
+    async def validate(self):
         query = {}
 
         for key, value in self.query.items():
@@ -100,7 +95,7 @@ class QuerySet(object):
                 value = {'${}'.format(suffix): value}
             elif not (key.startswith('$') or key == '_id'):
                 try:
-                    value = self.model.__fields__[key].serialize(value)
+                    value = await self.model.Meta.fields[key].serialize(value)
                 except KeyError:
                     raise exceptions.InvalidQuery(
                         '{} has not field {}'.format(self.model, key)
@@ -137,44 +132,46 @@ class QuerySet(object):
         return self.clone(raw_fields=self._raw_fields + list(fields))
 
     async def count(self):
-        return await self.clone().cursor.count(True)
+        clone = self.clone()
+        await clone.validate()
+        return await clone.cursor.count(True)
 
     async def get(self, **query):
-        self = self.filter(**query)
-        self.limit = 1
+        clone = self.filter(**query)
+        clone.limit = 1
 
-        async for item in self:
+        async for item in clone:
             return item
 
-        raise self.model.DoesNotExist()
+        raise clone.model.DoesNotExist()
 
     async def first(self):
-        self = self.clone()
-        self._sorts.append('_id')
-        return await self.get()
+        clone = self.clone()
+        clone._sorts.append('_id')
+        return await clone.get()
 
     async def last(self):
-        self = self.clone()
-        self._sorts.append('-_id')
-        return await self.get()
+        clone = self.clone()
+        clone._sorts.append('-_id')
+        return await clone.get()
 
     def all(self):
         return self.filter()
 
     def __getitem__(self, item):
-        self = self.clone()
+        clone = self.clone()
 
         if isinstance(item, slice):
             if item.start is not None and item.stop is not None:
-                self.offset = item.start
-                self.limit = item.stop - item.start
+                clone.offset = item.start
+                clone.limit = item.stop - item.start
             elif item.start is not None:
-                self.offset = item.start
+                clone.offset = item.start
             elif item.stop is not None:
-                self.limit = item.stop
+                clone.limit = item.stop
         else:
-            self.offset = item
-            self.limit = 1
-            return self.get()
+            clone.offset = item
+            clone.limit = 1
+            return clone.get()
 
-        return self
+        return clone

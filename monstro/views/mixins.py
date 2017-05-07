@@ -1,5 +1,3 @@
-# coding=utf-8
-
 import bson
 import bson.errors
 
@@ -11,7 +9,7 @@ class RedirectResponseMixin(object):
     redirect_url = None
     permanent = True
 
-    def get_redirect_url(self):
+    async def get_redirect_url(self):
         assert self.redirect_url, (
             'RedirectResponseMixin requires either a definition of '
             '"redirect_url" or an implementation of "get_redirect_url()"'
@@ -24,7 +22,7 @@ class ModelResponseMixin(object):
 
     model = None
 
-    def get_model(self):
+    async def get_model(self):
         assert self.model, (
             'ModelResponseMixin requires either a definition of '
             '"model" or an implementation of "get_model()"'
@@ -38,7 +36,7 @@ class QuerysetResponseMixin(ModelResponseMixin):
     queryset = None
 
     async def get_queryset(self):
-        model = self.get_model()
+        model = await self.get_model()
 
         assert self.queryset or model, (
             'QuerysetResponseMixin requires either a definition of '
@@ -50,29 +48,29 @@ class QuerysetResponseMixin(ModelResponseMixin):
 
 class ListResponseMixin(QuerysetResponseMixin):
 
-    pagination = None
+    paginator = None
     search_fields = None
     search_query_argument = 'q'
 
-    def get_search_fields(self):
+    async def get_search_fields(self):
         return self.search_fields or []
 
-    def get_pagination(self):
-        return self.pagination
+    async def get_paginator(self):
+        return self.paginator
 
     async def paginate(self):
         queryset = await self.get_queryset()
-        pagination = self.get_pagination()
-        search_fields = self.get_search_fields()
+        paginator = await self.get_paginator()
+        search_fields = await self.get_search_fields()
         search_query = self.get_query_argument(self.search_query_argument, '')
 
         if search_fields and search_query:
             query = Or(Regex({f: search_query for f in search_fields}))
             queryset = queryset.filter(**query)
 
-        if pagination:
-            pagination.bind(**self.request.GET)
-            return await pagination.paginate(queryset)
+        if paginator:
+            paginator.bind(**self.request.GET)
+            return await paginator.paginate(queryset)
 
         return queryset
 

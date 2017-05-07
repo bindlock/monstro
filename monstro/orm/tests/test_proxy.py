@@ -1,20 +1,18 @@
-# coding=utf-8
-
 import unittest
 
 import pymongo
 
-import monstro.testing
-
 from monstro import orm
 from monstro.orm import proxy
+import monstro.testing
 
 
 class TestModel(orm.Model):
 
-    __collection__ = 'test'
-
     name = orm.String()
+
+    class Meta:
+        collection = 'test'
 
 
 class AutoReconnectTest(unittest.TestCase):

@@ -1,6 +1,3 @@
-# coding=utf-8
-
-
 class Widget(object):
 
     def __init__(self, tag, value=None, attributes=None):

@@ -1,9 +1,7 @@
-# coding=utf-8
-
 import collections
 
-from . import exceptions
-from .fields import Field, Method
+from .exceptions import ValidationError
+from .fields import Field
 
 
 class MetaForm(type):
@@ -16,126 +14,106 @@ class MetaForm(type):
         fields = collections.OrderedDict()
 
         for parent in bases:
-            if hasattr(parent, '__fields__'):
-                fields.update(parent.__fields__)
+            if hasattr(parent, 'Meta'):
+                fields.update(parent.Meta.fields)
 
-        for key, value in attributes.items():
+        for key, value in list(attributes.items()):
             if isinstance(value, Field):
+                value.bind(name=key)
                 fields[key] = value
+                attributes.pop(key, None)
 
-        for field in fields:
-            attributes.pop(field, None)
+        attributes.setdefault('Meta', type('Meta', (), {}))
 
         cls = type.__new__(mcs, name, bases, attributes)
 
-        cls.__fields__ = fields
-        cls.ValidationError = exceptions.ValidationError
-
-        for name, field in cls.__fields__.items():
-            field.bind(name=name)
+        cls.Meta.fields = fields
+        cls.ValidationError = ValidationError
 
         return cls
 
 
+class MetaModelForm(MetaForm):
+
+    def __new__(mcs, name, bases, attributes):
+        if 'Meta' in attributes:
+            Meta = attributes['Meta']
+            fields = getattr(Meta, 'fields', Meta.model.Meta.fields.keys())
+
+            for field in fields:
+                attributes.setdefault(field, Meta.model.Meta.fields[field])
+
+        return super().__new__(mcs, name, bases, attributes)
+
+
 class Form(object, metaclass=MetaForm):
 
-    def __init__(self, *, instance=None, data=None, raw_fields=None):
-        self.__instance__ = instance
-        self.__values__ = {}
-        self.__raw_fields__ = raw_fields or []
-
-        data = (data or {})
-
-        for name, field in self.__fields__.items():
-            value = data.get(name, getattr(instance, name, field.default))
-            self.__values__[name] = value
-
-    def __getattr__(self, attribute):
-        if attribute in self.__fields__:
-            field = self.__fields__[attribute]
-            return self.__values__.get(attribute, field.default)
-
-        raise AttributeError(attribute)
-
-    def __setattr__(self, attribute, value):
-        if attribute in self.__fields__:
-            self.__values__[attribute] = value
-        else:
-            return super().__setattr__(attribute, value)
+    def __init__(self, data):
+        self.data = data
+        self.errors = {}
 
     @classmethod
     async def get_options(cls):
         metadata = []
 
-        for field in cls.__fields__.values():
+        for field in cls.Meta.fields.values():
             metadata.append(await field.get_options())
 
         return metadata
 
-    def get_raw_fields(self):
-        return self.__raw_fields__
-
-    async def deserialize(self):
-        for name, field in self.__fields__.items():
-            if name in self.__raw_fields__:
-                continue
-
-            value = self.__values__.get(name)
-
-            if value is None:
-                self.__values__[name] = field.default
-                continue
+    async def validate(self):
+        for name, field in self.Meta.fields.items():
+            value = self.data.get(name)
 
             try:
-                self.__values__[name] = await field.deserialize(value)
-            except exceptions.ValidationError:
-                self.__values__[name] = field.default
+                self.data[name] = await field.validate(value)
+            except ValidationError as e:
+                self.errors[name] = e.error
 
-        return self
+        if self.errors:
+            raise self.ValidationError(self.errors)
+
+
+class ModelForm(Form, metaclass=MetaModelForm):
+
+    def __init__(self, *, instance=None, data=None):
+        super().__init__(data or {})
+
+        self.instance = instance or self.Meta.model()
+
+        for name, field in self.Meta.fields.items():
+            value = self.data.get(name, getattr(instance, name, field.default))
+            self.data[name] = value
 
     async def validate(self):
-        self.__errors__ = {}
-
-        for name, field in self.__fields__.items():
-            if name in self.__raw_fields__:
+        for name, field in self.Meta.fields.items():
+            if field.read_only:
+                self.data[name] = getattr(self.instance, name, field.default)
                 continue
 
-            value = self.__values__.get(name)
+            value = self.data.get(name)
 
             try:
-                if field.read_only and not self.__instance__:
-                    if not (value is None or value == field.default):
-                        field.fail('read_only')
+                self.data[name] = await field.validate(value)
+            except ValidationError as e:
+                self.errors[name] = e.error
 
-                self.__values__[name] = await field.validate(value, self)
-            except exceptions.ValidationError as e:
-                self.__errors__[name] = e.error
-
-        if self.__errors__:
-            raise exceptions.ValidationError(self.__errors__)
-
-        return self
+        if self.errors:
+            raise self.ValidationError(self.errors)
 
     async def serialize(self):
         data = {}
 
-        for name, field in self.__fields__.items():
-            value = self.__values__.get(name)
-
-            if isinstance(field, Method):
-                function = getattr(self, 'get_{}'.format(name), None)
-
-                if function:
-                    data[name] = await function()
-                    continue
-
-            if name in self.__raw_fields__:
-                data[name] = value
-                continue
+        for name, field in self.Meta.fields.items():
+            value = getattr(self.instance, name, None)
 
             if value is not None:
-                data[name] = field.serialize(value)
+                data[name] = await field.serialize(value)
             else:
                 data[name] = None
 
         return data
+
+    async def save(self):
+        await self.instance.update(**self.data)
+        return self.instance

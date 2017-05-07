@@ -1,5 +1,3 @@
-# coding=utf-8
-
 from monstro.core.exceptions import MonstroError
 
 

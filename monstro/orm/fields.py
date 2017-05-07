@@ -1,23 +1,144 @@
-# coding=utf-8
+import datetime
+import json
 
-import bson.errors
 from bson.objectid import ObjectId
 from tornado.util import import_object
+import bson.errors
 
-from monstro.forms import widgets
-from monstro.forms.fields import *  # pylint: disable=W0401,W0614
+from monstro.forms import fields, widgets
 
 from .exceptions import InvalidQuery
 
 
 __all__ = (
+    'Boolean',
+    'String',
+    'Integer',
+    'Float',
+    'Choice',
+    'Array',
+    'MultipleChoice',
+    'URL',
+    'Host',
+    'Slug',
+    'Map',
+    'JSON',
+    'Date',
+    'Time',
+    'DateTime',
     'Id',
     'ForeignKey',
-    'ManyToMany'
+    'ManyToMany',
 )
 
 
-class Id(Field):
+class ModelField(object):
+
+    def __init__(self, *, unique=False, **kwargs):
+        super().__init__(**kwargs)
+
+        self.unique = unique
+
+    async def db_serialize(self, value):
+        return await self.serialize(value)
+
+    async def on_save(self, value):
+        return value
+
+    async def on_create(self, value):
+        return value
+
+
+class String(ModelField, fields.String):
+
+    pass
+
+
+class Boolean(ModelField, fields.Boolean):
+
+    pass
+
+
+class Integer(ModelField, fields.Integer):
+
+    pass
+
+
+class Float(ModelField, fields.Float):
+
+    pass
+
+
+class Choice(ModelField, fields.Choice):
+
+    pass
+
+
+class Array(ModelField, fields.Array):
+
+    pass
+
+
+class MultipleChoice(ModelField, fields.MultipleChoice):  # pylint:disable=R0901
+
+    pass
+
+
+class URL(ModelField, fields.URL):
+
+    pass
+
+
+class Host(ModelField, fields.Host):  # pylint:disable=R0901
+
+    pass
+
+
+class Slug(ModelField, fields.Slug):  # pylint:disable=R0901
+
+    pass
+
+
+class Map(ModelField, fields.Map):
+
+    pass
+
+
+class JSON(ModelField, fields.JSON):
+
+    async def db_serialize(self, value):
+        return json.dumps(value)
+
+
+class DateTime(ModelField, fields.DateTime):
+
+    async def db_serialize(self, value):
+        return value
+
+    async def on_save(self, value):
+        if self.auto_now:
+            return datetime.datetime.utcnow()
+
+        return value
+
+    async def on_create(self, value):
+        if self.auto_now_on_create:
+            return datetime.datetime.utcnow()
+
+        return value
+
+
+class Date(DateTime, fields.Date):
+
+    pass
+
+
+class Time(DateTime, fields.Time):
+
+    pass
+
+
+class Id(ModelField, fields.Field):
 
     widget = widgets.Input('hidden')
     errors = {
@@ -39,11 +160,11 @@ class Id(Field):
 
         return value
 
-    def serialize(self, value):
+    async def serialize(self, value):
         return str(value)
 
 
-class ForeignKey(Field):
+class ForeignKey(ModelField, fields.Field):
 
     errors = {
         'invalid': 'Model instance must be a {0.to.__name__}',
@@ -90,7 +211,7 @@ class ForeignKey(Field):
 
         return value
 
-    def serialize(self, value):
+    async def serialize(self, value):
         value = getattr(value, self.to_field)
 
         if self.to_field == '_id':
@@ -103,7 +224,7 @@ class ForeignKey(Field):
         model = self.get_related_model()
 
         async for item in model.objects.values():
-            instance = model(data=item)
+            instance = model(**item)
 
             try:
                 choices.append((str(item[self.to_field]), str(instance)))
@@ -116,7 +237,7 @@ class ForeignKey(Field):
         return await super().get_options()
 
 
-class ManyToMany(Array):
+class ManyToMany(ModelField, fields.Array):
 
     def __init__(self, *, to, to_field='_id', **kwargs):
         field = ForeignKey(to=to, to_field=to_field)

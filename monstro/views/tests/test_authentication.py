@@ -1,40 +1,39 @@
-# coding=utf-8
-
+from monstro.orm import Model, String
 import monstro.testing
-from monstro.forms import String
-from monstro.orm import Model
 
-from monstro.views.authentication import (
-    Authentication, HeaderAuthentication, CookieAuthentication
+from monstro.views.authenticators import (
+    Authenticator, HeaderAuthenticator, CookieAuthenticator
 )
 
 class User(Model):
 
-    __collection__ = 'users'
-
     value = String()
 
+    class Meta:
+        collection = 'users'
 
-class AuthenticationTest(monstro.testing.AsyncTestCase):
+
+class AuthenticatorTest(monstro.testing.AsyncTestCase):
 
     async def test_get_credentials__not_implemented(self):
         with self.assertRaises(NotImplementedError):
-            await Authentication().get_credentials(None)
+            await Authenticator().get_credentials(None)
 
     async def test_authenticate__not_implemented(self):
         with self.assertRaises(NotImplementedError):
-            await Authentication().authenticate(None)
+            await Authenticator().authenticate(None)
 
 
-class CookieAuthenticationTest(monstro.testing.AsyncTestCase):
+class CookieAuthenticatorTest(monstro.testing.AsyncTestCase):
 
     class User(Model):
 
-        __collection__ = 'tokens'
-
         value = String()
 
-    authentication = CookieAuthentication(User, 'value')
+        class Meta:
+            collection = 'tokens'
+
+    authenticator = CookieAuthenticator(User, 'value')
 
     async def test_authenticate(self):
         user = await self.User.objects.create(value='cookie')
@@ -43,7 +42,7 @@ class CookieAuthenticationTest(monstro.testing.AsyncTestCase):
             {'get_secure_cookie': lambda *args, **kwargs: user.value}
         )
 
-        auth = await self.authentication.authenticate(view)
+        auth = await self.authenticator.authenticate(view)
 
         self.assertEqual(user._id, auth._id)
 
@@ -53,20 +52,21 @@ class CookieAuthenticationTest(monstro.testing.AsyncTestCase):
             {'get_secure_cookie': lambda *args, **kwargs: 'wrong'}
         )
 
-        auth = await self.authentication.authenticate(view)
+        auth = await self.authenticator.authenticate(view)
 
         self.assertEqual(None, auth)
 
 
-class HeaderAuthenticationTest(monstro.testing.AsyncTestCase):
+class HeaderAuthenticatorTest(monstro.testing.AsyncTestCase):
 
     class Token(Model):
 
-        __collection__ = 'tokens'
-
         value = String()
 
-    authentication = HeaderAuthentication(Token, 'value')
+        class Meta:
+            collection = 'tokens'
+
+    authenticator = HeaderAuthenticator(Token, 'value')
 
     async def test_authenticate(self):
         token = await self.Token.objects.create(value='token')
@@ -75,7 +75,7 @@ class HeaderAuthenticationTest(monstro.testing.AsyncTestCase):
         )
         view = type('View', (object,), {'request': request})
 
-        auth = await self.authentication.authenticate(view)
+        auth = await self.authenticator.authenticate(view)
 
         self.assertEqual(token._id, auth._id)
 
@@ -85,6 +85,6 @@ class HeaderAuthenticationTest(monstro.testing.AsyncTestCase):
         )
         view = type('View', (object,), {'request': request})
 
-        auth = await self.authentication.authenticate(view)
+        auth = await self.authenticator.authenticate(view)
 
         self.assertEqual(None, auth)

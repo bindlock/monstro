@@ -1,12 +1,9 @@
-# coding=utf-8
-
 import uuid
 import random
 
 import monstro.testing
-from monstro.forms import fields
 
-from monstro.orm import model
+from monstro import orm
 
 
 class ManagerTest(monstro.testing.AsyncTestCase):
@@ -14,11 +11,11 @@ class ManagerTest(monstro.testing.AsyncTestCase):
     async def setUp(self):
         super().setUp()
 
-        class Test(model.Model):
+        class Test(orm.Model):
+            name = orm.String()
 
-            __collection__ = uuid.uuid4().hex
-
-            name = fields.String()
+            class Meta:
+                collection = uuid.uuid4().hex
 
         self.model = Test
 

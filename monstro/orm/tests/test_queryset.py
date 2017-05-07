@@ -15,17 +15,19 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
 
         class Related(model.Model):
 
-            __collection__ = uuid.uuid4().hex
-
             name = fields.String()
 
-        class Test(model.Model):
+            class Meta:
+                collection = uuid.uuid4().hex
 
-            __collection__ = uuid.uuid4().hex
+        class Test(model.Model):
 
             key = fields.ForeignKey(to=Related, to_field='name')
             name = fields.String()
             age = fields.Integer(required=False)
+
+            class Meta:
+                collection = uuid.uuid4().hex
 
         self.related_model = Related
         self.model = Test
@@ -43,18 +45,18 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
         queryset = self.model.objects.filter(test='1')
 
         with self.assertRaises(exceptions.InvalidQuery):
-            queryset.validate()
+            await queryset.validate()
 
     async def test_validate__validation_error(self):
         queryset = self.model.objects.filter(key=None)
 
-        self.assertEqual({'key': None}, queryset.validate())
+        self.assertEqual({'key': None}, await queryset.validate())
 
-    def test_validate__nested_query(self):
+    async def test_validate__nested_query(self):
         queryset = self.model.objects.filter(name__lte='', name__gte='')
 
         self.assertEqual(
-            {'name': {'$gte': '', '$lte': ''}}, queryset.validate()
+            {'name': {'$gte': '', '$lte': ''}}, await queryset.validate()
         )
 
     async def test_cursor_method(self):
@@ -154,14 +156,8 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
             self.assertIn('name', item)
             self.assertIn('age', item)
 
-    async def test_raw_fields(self):
-        queryset = self.model.objects.raw_fields('key')
-
-        async for item in queryset:
-            self.assertIsInstance(item.key, str)
-
     async def test_suffix_query(self):
         choices = ['test', 't']
         queryset = self.model.objects.filter(key__in=choices)
 
-        self.assertEqual({'key': {'$in': choices}}, queryset.validate())
+        self.assertEqual({'key': {'$in': choices}}, await queryset.validate())

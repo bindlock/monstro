@@ -25,7 +25,6 @@ __all__ = (
     'Date',
     'Time',
     'DateTime',
-    'Method'
 )
 
 
@@ -40,24 +39,13 @@ class Field(object):
     }
 
     def __init__(self, *, name=None, required=True, default=None, label=None,
-                 unique=False, help_text=None, read_only=False,
-                 validators=None, errors=None, widget=None):
+                 help_text=None, read_only=False, validators=None,
+                 errors=None, widget=None):
 
-        """
-        :param required (optional): value is required flag.
-        :type required: bool.
-        :param default (optional): default value.
-        :type default: type.
-        :param validators (optional): additional validators.
-        :type validators: iterable of callable.
-        :param errors (optional): override default error messages.
-        :type errors: dict.
-        """
         self.name = name
         self.required = required
         self._default = default
         self._label = label
-        self.unique = unique
         self.help_text = help_text
         self.read_only = read_only
         self.validators = validators or []
@@ -92,7 +80,7 @@ class Field(object):
     def bind(self, **kwargs):
         self.__dict__.update(kwargs)
 
-    async def validate(self, value=None, model=None):
+    async def validate(self, value):
         if value is None:
             value = self.default
 
@@ -107,15 +95,6 @@ class Field(object):
         for validator in self.validators:
             value = await validator(value)
 
-        if self.unique and hasattr(self, 'model'):
-            try:
-                instance = await self.model.objects.get(**{self.name: value})
-            except self.model.DoesNotExist:
-                instance = None
-
-            if instance and model and instance._id != model._id:
-                self.fail('unique')
-
         return value
 
     def fail(self, error, **kwargs):
@@ -126,16 +105,7 @@ class Field(object):
     async def deserialize(self, value):
         return value
 
-    def serialize(self, value):
-        return value
-
-    async def to_db_value(self, value):
-        return self.serialize(value)
-
-    async def on_save(self, value):
-        return value
-
-    async def on_create(self, value):
+    async def serialize(self, value):
         return value
 
     async def get_options(self):
@@ -150,7 +120,7 @@ class Field(object):
         }
 
         if not (self._default is None or callable(self._default)):
-            options['default'] = self.serialize(self._default)
+            options['default'] = await self.serialize(self._default)
 
         if self.widget:
             options['widget'] = self.widget.get_options()
@@ -259,11 +229,6 @@ class Choice(Field):
     }
 
     def __init__(self, *, choices, **kwargs):
-        """Initialization instance.
-
-        :param choices: choices.
-        :type choices: iterable.
-        """
         self.choices = list(choices)
         self.widget = widgets.Select(self.choices)
         super().__init__(**kwargs)
@@ -306,12 +271,12 @@ class Array(Type):
 
         return value
 
-    def serialize(self, value):
+    async def serialize(self, value):
         if self.field:
             values = []
 
             for item in value:
-                values.append(self.field.serialize(item))
+                values.append(await self.field.serialize(item))
 
             return values
 
@@ -454,18 +419,6 @@ class DateTime(Field):
     def available_formats(self):
         return list(set(self.input_formats + [self.default_format]))
 
-    async def on_save(self, value):
-        if self.auto_now:
-            return datetime.datetime.utcnow()
-
-        return value
-
-    async def on_create(self, value):
-        if self.auto_now_on_create:
-            return datetime.datetime.utcnow()
-
-        return value
-
     async def deserialize(self, value):
         if isinstance(value, str):
             for input_format in self.available_formats:
@@ -481,7 +434,7 @@ class DateTime(Field):
 
         return value
 
-    def serialize(self, value):
+    async def serialize(self, value):
         return value.isoformat()
 
     async def to_db_value(self, value):
@@ -512,12 +465,3 @@ class Time(DateTime):
 
     async def deserialize(self, value):
         return (await super().deserialize(value)).time()
-
-
-class Method(Field):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self.read_only = True
-        self.required = False

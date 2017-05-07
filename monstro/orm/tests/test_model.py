@@ -1,37 +1,27 @@
-# coding=utf-8
-
-import uuid
 import datetime
+import uuid
 
-import monstro.testing
-from monstro.forms import fields
+from monstro.forms import Field
 from monstro.forms.exceptions import ValidationError
-
-from monstro.orm import model, manager
-from monstro.orm.fields import ForeignKey
+from monstro.orm import fields, model, manager
+import monstro.testing
 
 
 class ModelTest(monstro.testing.AsyncTestCase):
 
     drop_database_on_finish = True
 
-    def test_init(self):
-        instance = model.Model(data={})
-
-        self.assertEqual({'_id': None}, instance.__values__)
-        self.assertEqual(None, instance.__cursor__)
-        self.assertFalse(hasattr(instance, 'objects'))
-
     def test_str(self):
-        instance = model.Model(data={})
+        instance = model.Model()
 
         self.assertTrue(str(instance))
 
     async def test_equal(self):
         class CustomModel(model.Model):
-            __collection__ = 'test'
-
             string = fields.String()
+
+            class Meta:
+                collection = 'test'
 
         instance = await CustomModel.objects.create(string=uuid.uuid4().hex)
         instance_ = await CustomModel.objects.get(string=instance.string)
@@ -40,92 +30,69 @@ class ModelTest(monstro.testing.AsyncTestCase):
 
     def test_new(self):
         class CustomModel(model.Model):
-            __collection__ = 'test'
+            string = fields.String()
 
-            name = fields.String()
+            class Meta:
+                collection = 'test'
 
-        instance = CustomModel(data={})
+        instance = CustomModel()
 
-        self.assertEqual('test', CustomModel.__collection__)
+        self.assertEqual('test', CustomModel.Meta.collection)
         self.assertEqual(CustomModel.objects.model, CustomModel)
-        self.assertIn('name', instance.__fields__)
-        self.assertIn('_id', instance.__fields__)
-
-    def test_new_init_with__id_field(self):
-        with self.assertRaises(AttributeError):
-
-            class Test(model.Model):  # pylint: disable=W0612
-                __collection__ = 'test'
-                _id = fields.Integer()
+        self.assertIn('string', instance.Meta.fields)
+        self.assertIn('_id', instance.Meta.fields)
 
     def test_getattr__attribute_error(self):
-        class CustomModel(model.Model):
-            __collection__ = 'test'
-
-            name = fields.String()
-
-        instance = CustomModel(data={'name': 'test'})
-
         with self.assertRaises(AttributeError):
-            instance.none()
+            model.Model().none()
 
     async def test_serialize(self):
         class CustomModel(model.Model):
-            __collection__ = 'test'
-
             name = fields.String()
             dt = fields.DateTime()
 
-        instance = CustomModel(
-            data={'name': 'test', 'dt': datetime.datetime.now()}
-        )
+            class Meta:
+                collection = 'test'
+
+        instance = CustomModel(name='test', dt=datetime.datetime.now())
         data = await instance.serialize()
         dt = data.pop('dt')
 
         self.assertEqual({'name': 'test', '_id': None}, data)
         self.assertIsInstance(dt, str)
 
-    async def test_save(self):
+    async def test_db_serialize(self):
         class CustomModel(model.Model):
-            __collection__ = 'test'
-
-            string = fields.String()
-
-        instance = await CustomModel.objects.create(string=uuid.uuid4().hex)
-
-        _model = await instance.objects.get(string=instance.string)
-
-        self.assertEqual(instance.string, _model.string)
-
-    async def test_to_db_value(self):
-        class CustomModel(model.Model):
-            __collection__ = 'test'
-
             string = fields.String(default='default')
             number = fields.Integer()
 
-        instance = CustomModel(data={'number': None}, raw_fields=['number'])
-        data = await instance.to_db_value()
+            class Meta:
+                collection = 'test'
 
-        self.assertEqual('default', data['string'])
-        self.assertEqual(None, data['number'])
+        instance = CustomModel(number=1)
+        data = await instance.db_serialize()
+
+        self.assertEqual(None, data['string'])
+        self.assertEqual(instance.number, data['number'])
 
     async def test_save__force(self):
         class CustomModel(model.Model):
-            __collection__ = 'test'
-
             string = fields.String()
 
-        instance = CustomModel(data={'string': None})
+            class Meta:
+                collection = 'test'
+
+        instance = CustomModel(string=None)
         await instance.save(force=True)
 
         self.assertEqual(None, instance.string)
 
     async def test_save__on_create(self):
         class CustomModel(model.Model):
-            __collection__ = 'test'
-
             datetime = fields.DateTime(auto_now_on_create=True)
+
+            class Meta:
+                collection = 'test'
 
         instance = await CustomModel.objects.create(string=uuid.uuid4().hex)
 
@@ -133,9 +100,10 @@ class ModelTest(monstro.testing.AsyncTestCase):
 
     async def test_update(self):
         class CustomModel(model.Model):
-            __collection__ = 'test'
-
             string = fields.String()
+
+            class Meta:
+                collection = 'test'
 
         instance = await CustomModel.objects.create(string=uuid.uuid4().hex)
 
@@ -145,9 +113,10 @@ class ModelTest(monstro.testing.AsyncTestCase):
 
     async def test_refresh(self):
         class CustomModel(model.Model):
-            __collection__ = 'test'
-
             string = fields.String()
+
+            class Meta:
+                collection = 'test'
 
         instance = await CustomModel.objects.create(string=uuid.uuid4().hex)
 
@@ -163,9 +132,10 @@ class ModelTest(monstro.testing.AsyncTestCase):
 
     async def test_resave(self):
         class CustomModel(model.Model):
-            __collection__ = 'test'
-
             string = fields.String()
+
+            class Meta:
+                collection = 'test'
 
         instance = await CustomModel.objects.create(string=uuid.uuid4().hex)
 
@@ -178,17 +148,17 @@ class ModelTest(monstro.testing.AsyncTestCase):
 
     async def test_construct(self):
         class RelatedModel(model.Model):
-            __collection__ = 'test2'
-
             name = fields.String()
 
-        class CustomModel(model.Model):
-            __collection__ = 'test'
+            class Meta:
+                collection = 'test2'
 
+        class CustomModel(model.Model):
             string = fields.String()
-            related = ForeignKey(
-                to=RelatedModel, to_field='name'
-            )
+            related = fields.ForeignKey(to=RelatedModel, to_field='name')
+
+            class Meta:
+                collection = 'test'
 
         related_model = await RelatedModel.objects.create(
             name=uuid.uuid4().hex
@@ -204,21 +174,24 @@ class ModelTest(monstro.testing.AsyncTestCase):
 
     async def test_validate(self):
         class FirstModel(model.Model):
-            __collection__ = 'test2'
-
             name = fields.String()
+
+            class Meta:
+                collection = 'test2'
 
         class SecondModel(model.Model):
-            __collection__ = 'test'
-
             name = fields.String()
-            related = ForeignKey(to=FirstModel)
+            related = fields.ForeignKey(to=FirstModel)
+
+            class Meta:
+                collection = 'test'
 
         class ThirdModel(model.Model):
-            __collection__ = 'test'
-
             name = fields.String()
-            related = ForeignKey(to=SecondModel)
+            related = fields.ForeignKey(to=SecondModel)
+
+            class Meta:
+                collection = 'test3'
 
         first = await FirstModel.objects.create(name=uuid.uuid4().hex)
         second = await SecondModel.objects.create(
@@ -239,17 +212,13 @@ class ModelTest(monstro.testing.AsyncTestCase):
 
         self.assertIn('related', context.exception.error)
 
-        try:
-            await second.save()
-        except ValidationError as e:
-            self.assertIn('related', e.error)
-
     async def test_validate__unique(self):
 
         class CustomModel(model.Model):
-            __collection__ = 'test'
-
             string = fields.String(unique=True)
+
+            class Meta:
+                collection = 'test'
 
         instance = await CustomModel.objects.create(string=uuid.uuid4().hex)
 
@@ -258,14 +227,15 @@ class ModelTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error['string'],
-            fields.Field.errors['unique']
+            Field.errors['unique']
         )
 
     async def test_delete(self):
         class CustomModel(model.Model):
-            __collection__ = 'test'
-
             string = fields.String()
+
+            class Meta:
+                collection = 'test'
 
         instance = await CustomModel.objects.create(string=uuid.uuid4().hex)
         await instance.delete()
@@ -280,10 +250,11 @@ class ModelTest(monstro.testing.AsyncTestCase):
                 return None
 
         class CustomModel(model.Model):
-            __collection__ = 'test'
-            objects = CustomManager()
-
             string = fields.String()
+
+            class Meta:
+                collection = 'test'
+                objects = CustomManager()
 
         instance = await CustomModel.objects.create()
 
