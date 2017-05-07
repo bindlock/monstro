@@ -225,7 +225,6 @@ class ModelAPIViewTest(monstro.testing.AsyncHTTPTestCase):
         self.assertEqual(404, response.code)
         self.assertEqual('error', data['status'])
         self.assertEqual(404, data['code'])
-        self.assertEqual('Object not found', data['details']['message'])
 
     def test_get_instance__not_found(self):
         instance = self.run_sync(self.TestModel.objects.create, value='test')
@@ -238,7 +237,6 @@ class ModelAPIViewTest(monstro.testing.AsyncHTTPTestCase):
         self.assertEqual(404, response.code)
         self.assertEqual('error', data['status'])
         self.assertEqual(404, data['code'])
-        self.assertEqual('Object not found', data['details']['message'])
 
     def test_options(self):
         response = self.fetch('/test/invalid', method='OPTIONS')
