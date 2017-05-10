@@ -109,8 +109,7 @@ class Map(ModelField, fields.Map):
 
 class JSON(ModelField, fields.JSON):
 
-    async def db_serialize(self, value):
-        return json.dumps(value)
+    pass
 
 
 class DateTime(ModelField, fields.DateTime):

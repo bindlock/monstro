@@ -391,6 +391,9 @@ class JSON(Field):
         except (ValueError, TypeError):
             self.fail('invalid')
 
+    async def serialize(self, value):
+        return json.dumps(value)
+
 
 class DateTime(Field):
 

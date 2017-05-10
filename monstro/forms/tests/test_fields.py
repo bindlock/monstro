@@ -450,6 +450,9 @@ class JSONTest(monstro.testing.AsyncTestCase):
             fields.JSON.errors['invalid'].format(field)
         )
 
+    async def test_serialize(self):
+        self.assertIsInstance(await fields.JSON().serialize({}), str)
+
 
 class SlugTest(monstro.testing.AsyncTestCase):
 
