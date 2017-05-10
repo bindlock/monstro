@@ -3,7 +3,7 @@ import urllib
 
 import tornado.web
 
-from monstro import forms, orm
+from monstro import forms, db
 from monstro.views import (
     View, ListView, TemplateView, DetailView, FormView,
     CreateView, UpdateView, RedirectView, DeleteView
@@ -12,9 +12,9 @@ from monstro.views.authenticators import CookieAuthenticator
 import monstro.testing
 
 
-class User(orm.Model):
+class User(db.Model):
 
-    value = orm.String()
+    value = db.String()
 
     class Meta:
         collection = 'users'

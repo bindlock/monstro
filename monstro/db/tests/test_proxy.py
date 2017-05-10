@@ -2,14 +2,14 @@ import unittest
 
 import pymongo
 
-from monstro import orm
-from monstro.orm import proxy
+from monstro import db
+from monstro.db import proxy
 import monstro.testing
 
 
-class TestModel(orm.Model):
+class TestModel(db.Model):
 
-    name = orm.String()
+    name = db.String()
 
     class Meta:
         collection = 'test'

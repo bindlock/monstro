@@ -1,7 +1,7 @@
 import unittest
 
-from monstro.orm import db
-from monstro.orm.proxy import MotorProxy
+from monstro.db import db
+from monstro.db.proxy import MotorProxy
 
 
 class DBTest(unittest.TestCase):

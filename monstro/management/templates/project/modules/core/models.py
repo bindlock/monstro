@@ -1,3 +1,3 @@
-from monstro import orm
+from monstro import db
 
 # Create your model here

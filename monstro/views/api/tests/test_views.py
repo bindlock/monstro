@@ -3,7 +3,7 @@ import json
 from tornado.httputil import url_concat
 import tornado.web
 
-from monstro import forms, orm
+from monstro import forms, db
 from monstro.views.paginators import PageNumberPaginator
 from monstro.views.authenticators import HeaderAuthenticator
 import monstro.testing
@@ -107,9 +107,9 @@ class APIViewWithAuthenticationTest(monstro.testing.AsyncHTTPTestCase):
 
         value = forms.String()
 
-    class Token(orm.Model):
+    class Token(db.Model):
 
-        value = orm.String()
+        value = db.String()
 
         class Meta:
             collection = 'tokens'
@@ -155,9 +155,9 @@ class ModelAPIViewTest(monstro.testing.AsyncHTTPTestCase):
     drop_database_on_finish = True
     drop_database_every_test = True
 
-    class TestModel(orm.Model):
+    class TestModel(db.Model):
 
-        value = orm.String()
+        value = db.String()
 
         class Meta:
             collection = 'test'
@@ -334,9 +334,9 @@ class ModelAPIViewWithPaginatorTest(monstro.testing.AsyncHTTPTestCase):
     drop_database_on_finish = True
     drop_database_every_test = True
 
-    class TestModel(orm.Model):
+    class TestModel(db.Model):
 
-        value = orm.String()
+        value = db.String()
 
         class Meta:
             collection = 'test'
@@ -369,9 +369,9 @@ class ModelAPIViewWithFormsTest(monstro.testing.AsyncHTTPTestCase):
     drop_database_on_finish = True
     drop_database_every_test = True
 
-    class TestModel(orm.Model):
+    class TestModel(db.Model):
 
-        value = orm.String()
+        value = db.String()
 
         class Meta:
             collection = 'test'

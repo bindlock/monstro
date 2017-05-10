@@ -3,7 +3,7 @@ import asyncio
 import tornado.ioloop
 import tornado.testing
 
-from monstro.orm import db
+from monstro.db import db
 
 
 __all__ = (

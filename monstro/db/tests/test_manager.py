@@ -3,7 +3,7 @@ import random
 
 import monstro.testing
 
-from monstro import orm
+from monstro import db
 
 
 class ManagerTest(monstro.testing.AsyncTestCase):
@@ -11,8 +11,8 @@ class ManagerTest(monstro.testing.AsyncTestCase):
     async def setUp(self):
         super().setUp()
 
-        class Test(orm.Model):
-            name = orm.String()
+        class Test(db.Model):
+            name = db.String()
 
             class Meta:
                 collection = uuid.uuid4().hex

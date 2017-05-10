@@ -3,7 +3,7 @@ import uuid
 
 from monstro.forms import Field
 from monstro.forms.exceptions import ValidationError
-from monstro.orm import fields, model, manager
+from monstro.db import fields, model, manager
 import monstro.testing
 
 

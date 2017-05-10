@@ -1,6 +1,6 @@
 import subprocess
 
-from monstro.orm import db
+from monstro.db import db
 
 
 def execute(*args):

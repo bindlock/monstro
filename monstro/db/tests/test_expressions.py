@@ -1,6 +1,6 @@
 import unittest
 
-from monstro.orm import Or, Regex
+from monstro.db import Or, Regex
 
 
 class OrTest(unittest.TestCase):

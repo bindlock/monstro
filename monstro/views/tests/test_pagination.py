@@ -1,4 +1,4 @@
-from monstro.orm import Model, String
+from monstro.db import Model, String
 import monstro.testing
 
 from monstro.views.paginators import (

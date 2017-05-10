@@ -4,7 +4,7 @@ import uuid
 from bson.objectid import ObjectId
 
 from monstro.forms.exceptions import ValidationError
-from monstro.orm import fields, model
+from monstro.db import fields, model
 import monstro.testing
 
 

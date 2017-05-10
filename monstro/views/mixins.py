@@ -1,7 +1,7 @@
 import bson
 import bson.errors
 
-from monstro.orm import Or, Regex
+from monstro.db import Or, Regex
 
 
 class RedirectResponseMixin(object):

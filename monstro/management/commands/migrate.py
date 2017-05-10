@@ -3,7 +3,7 @@ from tornado.util import import_object
 
 from monstro.conf import settings
 from monstro.core.exceptions import ImproperlyConfigured
-from monstro.orm.migrations.models import Migration
+from monstro.db.migrations.models import Migration
 
 
 def execute(args):

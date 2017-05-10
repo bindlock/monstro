@@ -1,6 +1,6 @@
 import monstro.testing
 
-from monstro import forms, orm
+from monstro import forms, db
 
 
 class TestForm(forms.Form):
@@ -11,10 +11,10 @@ class TestForm(forms.Form):
     number = forms.Integer()
 
 
-class TestModel(orm.Model):
+class TestModel(db.Model):
 
-    string = orm.String(default='default')
-    number = orm.Integer()
+    string = db.String(default='default')
+    number = db.Integer()
 
     class Meta:
         collection = 'test'
@@ -22,7 +22,7 @@ class TestModel(orm.Model):
 
 class TestModelForm(forms.ModelForm):
 
-    float = orm.Float()
+    float = db.Float()
 
     class Meta:
         model = TestModel
@@ -77,7 +77,7 @@ class ModelFormTest(monstro.testing.AsyncTestCase):
         )
 
         self.assertNotIn('number', TestModelForm.Meta.fields)
-        self.assertIsInstance(TestModelForm.Meta.fields['float'], orm.Float)  # pylint:disable=E1126
+        self.assertIsInstance(TestModelForm.Meta.fields['float'], db.Float)  # pylint:disable=E1126
 
     async def test_validate__read_only(self):
         TestModelForm.Meta.fields['string'].read_only = True  # pylint:disable=E1126
