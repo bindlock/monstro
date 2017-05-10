@@ -55,13 +55,14 @@ class Model(object, metaclass=MetaModel):
     def __new__(cls, *args, **kwargs):
         self = object.__new__(cls)
         self.Meta = cls.Meta()
+
+        if hasattr(self.Meta, 'collection'):
+            self.Meta.collection = db.database[self.Meta.collection]
+
         return self
 
     def __init__(self, **kwargs):
         self.Meta.data = kwargs
-
-        if hasattr(self.Meta, 'collection'):
-            self.Meta.collection = db.database[self.Meta.collection]
 
     def __getattr__(self, attribute):
         if attribute in self.Meta.fields:
@@ -84,6 +85,14 @@ class Model(object, metaclass=MetaModel):
 
     def fail(self, code, field):
         raise self.ValidationError({field: self.Meta.errors[code]})
+
+    @classmethod
+    async def from_db(cls, data):
+        for name, field in cls.Meta.fields.items():
+            if name in data:
+                data[name] = await field.db_deserialize(data[name])
+
+        return cls(**data)
 
     async def deserialize(self):
         for name, field in self.Meta.fields.items():

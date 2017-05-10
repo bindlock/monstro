@@ -39,6 +39,9 @@ class ModelField(object):
 
         self.unique = unique
 
+    async def db_deserialize(self, value):
+        return await self.deserialize(value)
+
     async def db_serialize(self, value):
         return await self.serialize(value)
 
