@@ -1,23 +1,22 @@
-import argparse
 import os
 import shutil
 
 import monstro.management
 
 
-def execute(args):
+class NewTemplate(monstro.management.Command):
+
     templates = ('project', 'module')
-    argparser = argparse.ArgumentParser(description='Create template')
 
-    argparser.add_argument('template', choices=templates)
-    argparser.add_argument('path')
+    def add_arguments(self, parser):
+        parser.add_argument('template', choices=self.templates)
+        parser.add_argument('path')
 
-    args = argparser.parse_args(args)
+    def execute(self, arguments):
+        source = os.path.join(
+            os.path.abspath(os.path.dirname(monstro.management.__file__)),
+            'templates/{}'.format(arguments.template)
+        )
+        destination = os.path.join(os.getcwd(), arguments.path)
 
-    template_path = os.path.join(
-        os.path.abspath(os.path.dirname(monstro.management.__file__)),
-        'templates/{}'.format(args.template)
-    )
-    destination_path = os.path.join(os.getcwd(), args.path)
-
-    shutil.copytree(template_path, destination_path)
+        shutil.copytree(source, destination)

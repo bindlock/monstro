@@ -1,5 +1,9 @@
 import code
 
+from monstro.management import Command
 
-def execute(*args):
-    code.interact()
+
+class Shell(Command):
+
+    def execute(self, arguments):
+        code.interact()

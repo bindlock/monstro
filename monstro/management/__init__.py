@@ -1,35 +1,64 @@
+import argparse
+import functools
+import importlib
 import os
 import sys
-import argparse
-import importlib
+
 
 from tornado.util import import_object
 
+from monstro.conf import settings
 from monstro.core.constants import (
     SETTINGS_ENVIRONMENT_VARIABLE,
     MONGODB_URI_ENVIRONMENT_VARIABLE
 )
 
 
+class Command(object):
+
+    def get_argument_parser(self):
+        parser = argparse.ArgumentParser()
+
+        parser.add_argument('command')
+        parser.add_argument('-s', '--settings')
+        parser.add_argument('-p', '--python-path')
+        parser.add_argument('-m', '--mongodb-uri')
+
+        return parser
+
+    def add_arguments(self, parser):
+        pass
+
+    def execute(self, arguments):
+        raise NotImplementedError()
+
+
 def manage():
-    argparser = argparse.ArgumentParser()
+    commands = {
+        'db': 'monstro.management.commands.db.DatabaseShell',
+        'migrate': 'monstro.management.commands.migrate.ApplyMigrations',
+        'new': 'monstro.management.commands.new.NewTemplate',
+        'run': 'monstro.management.commands.run.RunServer',
+        'shell': 'monstro.management.commands.shell.Shell',
+        'test': 'monstro.management.commands.test.Test',
+    }
 
-    argparser.add_argument('command')
-    argparser.add_argument('-s', '--settings')
-    argparser.add_argument('-p', '--python-path')
-    argparser.add_argument('-m', '--mongodb-uri')
+    commands.update(getattr(settings, 'commands', {}))
 
-    args, unknown = argparser.parse_known_args()
+    arguments, __ = Command().get_argument_parser().parse_known_args()
 
-    if args.settings:
-        os.environ[SETTINGS_ENVIRONMENT_VARIABLE] = args.settings
+    try:
+        command = import_object(commands[arguments.command])
+    except KeyError:
+        print('Unknown command: {}'.format(arguments.command))
 
-    if args.mongodb_uri:
-        os.environ[MONGODB_URI_ENVIRONMENT_VARIABLE] = args.mongodb_uri
+    if arguments.settings:
+        os.environ[SETTINGS_ENVIRONMENT_VARIABLE] = arguments.settings
 
-    if args.python_path:
-        sys.path.insert(0, args.python_path)
+    if arguments.mongodb_uri:
+        os.environ[MONGODB_URI_ENVIRONMENT_VARIABLE] = arguments.mongodb_uri
 
-    module_path = 'monstro.management.commands.{}.execute'.format(args.command)
+    if arguments.python_path:
+        sys.path.insert(0, arguments.python_path)
 
-    import_object(module_path)(unknown)
+    command().execute(command().get_argument_parser().parse_args())
