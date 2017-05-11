@@ -1,32 +1,35 @@
-import os
 import importlib
+import os
 
-import tornado.ioloop
 from tornado.util import import_object
+import tornado.ioloop
 
-from monstro.forms import forms, fields
+from monstro import forms
 from monstro.core.exceptions import ImproperlyConfigured
 from monstro.core.constants import SETTINGS_ENVIRONMENT_VARIABLE
 
 
-class SettingsSchema(forms.Form):
+class SettingsForm(forms.Form):
 
-    secret_key = fields.String()
-    debug = fields.Boolean()
+    secret_key = forms.String()
+    debug = forms.Boolean()
 
-    urls = fields.String()
+    urls = forms.String()
 
-    mongodb_uri = fields.String()
-    mongodb_client_settings = fields.Map(required=False)
+    mongodb_uri = forms.String()
+    mongodb_client_settings = forms.Map(required=False)
 
-    tornado_application_settings = fields.Map(required=False)
+    tornado_application_settings = forms.Map(required=False)
 
-    nosetests_arguments = fields.Array(required=False)
+    nosetests_arguments = forms.Array(field=forms.String(), required=False)
+
+    models = forms.Array(field=forms.String(), required=False)
+    commands = forms.Map(required=False)
 
 
-async def _import_settings_class():
+async def import_settings_class():
     try:
-        settings_path = os.environ[SETTINGS_ENVIRONMENT_VARIABLE]
+        path = os.environ[SETTINGS_ENVIRONMENT_VARIABLE]
     except KeyError:
         raise ImproperlyConfigured(
             'You must either define the environment variable "{}".'.format(
@@ -34,10 +37,10 @@ async def _import_settings_class():
             )
         )
 
-    settings_class = import_object(settings_path)
-    await SettingsSchema(data=dict(settings_class.__dict__)).validate()
+    settings_class = import_object(path)
+    await SettingsForm(data=dict(settings_class.__dict__)).validate()
 
     return settings_class
 
 
-settings = tornado.ioloop.IOLoop.instance().run_sync(_import_settings_class)
+settings = tornado.ioloop.IOLoop.instance().run_sync(import_settings_class)

@@ -3,7 +3,7 @@ import os
 from monstro.testing import AsyncTestCase
 from monstro.core.constants import SETTINGS_ENVIRONMENT_VARIABLE
 from monstro.core.exceptions import ImproperlyConfigured
-from monstro.conf import _import_settings_class, default
+from monstro.conf import import_settings_class, default
 
 
 class SettingsTest(AsyncTestCase):
@@ -16,7 +16,7 @@ class SettingsTest(AsyncTestCase):
         )
 
     async def test_import(self):
-        settings = await _import_settings_class()
+        settings = await import_settings_class()
 
         self.assertEqual(settings, default.Settings)
 
@@ -24,4 +24,4 @@ class SettingsTest(AsyncTestCase):
         os.environ.pop(SETTINGS_ENVIRONMENT_VARIABLE)
 
         with self.assertRaises(ImproperlyConfigured):
-            await _import_settings_class()
+            await import_settings_class()
