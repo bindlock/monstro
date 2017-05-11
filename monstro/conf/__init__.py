@@ -23,7 +23,7 @@ class SettingsForm(forms.Form):
 
     nosetests_arguments = forms.Array(field=forms.String(), required=False)
 
-    models = forms.Array(field=forms.PythonPath(), required=False)
+    models = forms.Array(field=forms.String(), required=False)
     commands = forms.Map(required=False)
 
 
