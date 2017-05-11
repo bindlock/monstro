@@ -317,10 +317,7 @@ class ArrayTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(
             context.exception.error,
-            fields.Array.errors['child'].format(
-                index=0,
-                message=fields.Integer.errors['invalid']
-            )
+            {0: fields.Integer.errors['invalid']}
         )
 
     async def test_deserialize(self):

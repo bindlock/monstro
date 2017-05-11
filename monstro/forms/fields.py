@@ -251,7 +251,6 @@ class Array(Type):
     widget = widgets.TextArea()
     errors = {
         'invalid': 'Value must be a valid array',
-        'child': '{index}: {message}'
     }
 
     def __init__(self, *, field=None, **kwargs):
@@ -263,12 +262,16 @@ class Array(Type):
 
         if self.field:
             values = []
+            errors = {}
 
             for index, item in enumerate(value):
                 try:
                     values.append(await self.field.deserialize(item))
                 except ValidationError as e:
-                    self.fail('child', index=index, message=e.error)
+                    errors[index] = e.error
+
+            if errors:
+                raise ValidationError(errors, self.name)
 
             return values
 
