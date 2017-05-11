@@ -1,7 +1,10 @@
 import datetime
 import json
 import re
+import types
 import urllib.parse
+
+from tornado.util import import_object
 
 from . import widgets
 from .exceptions import ValidationError
@@ -25,6 +28,7 @@ __all__ = (
     'Date',
     'Time',
     'DateTime',
+    'PythonPath'
 )
 
 
@@ -468,3 +472,24 @@ class Time(DateTime):
 
     async def deserialize(self, value):
         return (await super().deserialize(value)).time()
+
+
+class PythonPath(String):
+
+    errors = {
+        'import': 'Path must be available for import'
+    }
+
+    async def deserialize(self, value):
+        value = await super().deserialize(value)
+
+        try:
+            return import_object(value)
+        except ImportError:
+            self.fail('import')
+
+    async def serialize(self, value):
+        if isinstance(value, types.ModuleType):
+            return value.__name__
+
+        return value.__module__

@@ -546,3 +546,16 @@ class TimeTest(monstro.testing.AsyncTestCase):
         self.assertIsInstance(
             await field.deserialize('14:08:12'), datetime.time
         )
+
+
+class PythonPathTest(monstro.testing.AsyncTestCase):
+
+    async def test_serialize(self):
+        field = fields.PythonPath()
+
+        self.assertEqual('monstro.forms.fields', await field.serialize(fields))
+
+    async def test_deserialize(self):
+        field = fields.PythonPath()
+
+        self.assertIs(await field.deserialize('monstro.forms.fields'), fields)
