@@ -14,9 +14,6 @@ __all__ = (
 
 class AsyncTestCaseMixin(object):
 
-    drop_database_on_finish = False
-    drop_database_every_test = False
-
     def get_new_ioloop(self):
         return tornado.ioloop.IOLoop.current()
 
@@ -24,16 +21,7 @@ class AsyncTestCaseMixin(object):
         return self.io_loop.run_sync(lambda: function(*args, **kwargs))
 
     async def tearDown(self):
-        if self.drop_database_every_test:
-            await db.client.drop_database(db.database.name)
-
-    @classmethod
-    def tearDownClass(cls):
-        if cls.drop_database_on_finish:
-            io_loop = tornado.ioloop.IOLoop.current()
-            io_loop.run_sync(lambda: db.client.drop_database(db.database.name))
-
-        super().tearDownClass()
+        await db.client.drop_database(db.database.name)
 
     def async_method_wrapper(self, function):
         def wrapper(*args, **kwargs):

@@ -1,12 +1,10 @@
-import os
-
 import nose
 
+import tornado.ioloop
+
 from monstro.conf import settings
-from monstro.core.constants import (
-    TEST_MONGODB_URI, MONGODB_URI_ENVIRONMENT_VARIABLE
-)
 from monstro.management import Command
+import monstro.db.db
 
 
 class Test(Command):
@@ -15,9 +13,14 @@ class Test(Command):
         parser.add_argument('modules', nargs='*')
 
     def execute(self, arguments):
-        os.environ.setdefault(MONGODB_URI_ENVIRONMENT_VARIABLE, TEST_MONGODB_URI)
+        database_name = 'test_{}'.format(monstro.db.db.database.name)
+        monstro.db.db.database = monstro.db.db.client[database_name]
 
         argv = getattr(settings, 'nosetests_arguments', [])
         argv.extend(arguments.modules)
 
         nose.run(argv=argv)
+
+        tornado.ioloop.IOLoop.current().run_sync(
+            lambda: monstro.db.db.client.drop_database(database_name)
+        )
