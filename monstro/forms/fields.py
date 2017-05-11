@@ -470,9 +470,6 @@ class DateTime(Field):
     async def serialize(self, value):
         return value.isoformat()
 
-    async def to_db_value(self, value):
-        return value
-
 
 class Date(DateTime):
 
@@ -519,3 +516,21 @@ class PythonPath(String):
             return value.__name__
 
         return value.__module__
+
+
+class RegularExpression(String):
+
+    errors = {
+        'invalid': 'Value must be a valid Python regular expression'
+    }
+
+    async def deserialize(self, value):
+        value = await super().deserialize(value)
+
+        try:
+            return re.compile(value)
+        except re.error:
+            self.fail('invalid')
+
+    async def serialize(self, value):
+        return value.pattern

@@ -1,4 +1,5 @@
 import datetime
+import re
 
 import monstro.testing
 from monstro.utils import Choices
@@ -584,3 +585,29 @@ class PythonPathTest(monstro.testing.AsyncTestCase):
         field = fields.PythonPath()
 
         self.assertIs(await field.deserialize('monstro.forms.fields'), fields)
+
+
+class RegularExpressionTest(monstro.testing.AsyncTestCase):
+
+    async def test_serialize(self):
+        field = fields.RegularExpression()
+        pattern = re.compile(r'\d+')
+
+        self.assertEqual(pattern.pattern, await field.serialize(pattern))
+
+    async def test_deserialize(self):
+        field = fields.RegularExpression()
+        pattern = re.compile(r'\d+')
+
+        self.assertEqual(pattern, await field.deserialize(pattern.pattern))
+
+    async def test_deserialize__error(self):
+        field = fields.RegularExpression()
+
+        with self.assertRaises(exceptions.ValidationError) as context:
+            await field.deserialize('\\')
+
+        self.assertEqual(
+            context.exception.error,
+            field.errors['invalid']
+        )
