@@ -38,7 +38,6 @@ class Field(object):
     errors = {
         'required': 'Value is required',
         'invalid': 'Value is invalid',
-        'unique': 'Value must be unique',
         'read_only': 'Read-only field'
     }
 

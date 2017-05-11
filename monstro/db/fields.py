@@ -1,9 +1,9 @@
 import datetime
-import json
 
 from bson.objectid import ObjectId
 from tornado.util import import_object
 import bson.errors
+import pymongo
 
 from monstro.forms import fields, widgets
 
@@ -34,10 +34,14 @@ __all__ = (
 
 class ModelField(object):
 
-    def __init__(self, *, unique=False, **kwargs):
+    def __init__(self, *, unique=False, index=None, **kwargs):
         super().__init__(**kwargs)
 
         self.unique = unique
+        self.index = index
+
+        if self.unique:
+            self.index = pymongo.ASCENDING
 
     async def db_deserialize(self, value):
         return await self.deserialize(value)

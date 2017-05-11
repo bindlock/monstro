@@ -1,4 +1,7 @@
 import collections
+import re
+
+import pymongo.errors
 
 from . import manager, db
 from .exceptions import ValidationError
@@ -43,6 +46,9 @@ class MetaModel(type):
 
         cls.Meta.fields = fields
 
+        if hasattr(cls.Meta, 'collection'):
+            cls.Meta.collection = db.database[cls.Meta.collection]
+
         errors = mcs.errors.copy()
         errors.update(getattr(cls.Meta, 'errors', {}))
         cls.Meta.errors = errors
@@ -55,10 +61,6 @@ class Model(object, metaclass=MetaModel):
     def __new__(cls, *args, **kwargs):
         self = object.__new__(cls)
         self.Meta = cls.Meta()
-
-        if hasattr(self.Meta, 'collection'):
-            self.Meta.collection = db.database[self.Meta.collection]
-
         return self
 
     def __init__(self, **kwargs):
@@ -93,6 +95,16 @@ class Model(object, metaclass=MetaModel):
                 data[name] = await field.db_deserialize(data[name])
 
         return cls(**data)
+
+    @classmethod
+    async def prepare(cls):
+        for name, field in cls.Meta.fields.items():
+            if field.index is not None:
+                await cls.Meta.collection.create_index(
+                    ((name, field.index),),
+                    unique=field.unique,
+                    background=True
+                )
 
     async def deserialize(self):
         for name, field in self.Meta.fields.items():
@@ -140,15 +152,6 @@ class Model(object, metaclass=MetaModel):
             except self.ValidationError as e:
                 raise self.ValidationError({name: e.error})
 
-            if field.unique:
-                try:
-                    instance = await self.objects.get(**{name: value})
-                except self.DoesNotExist:
-                    pass
-                else:
-                    if not self._id or self._id != instance._id:
-                        self.fail('unique', name)
-
             self.Meta.data[name] = value
 
         return self
@@ -175,10 +178,14 @@ class Model(object, metaclass=MetaModel):
         data = await self.db_serialize()
         data.pop('_id')
 
-        if self._id:
-            await self.Meta.collection.update({'_id': self._id}, data)
-        else:
-            self.Meta.data['_id'] = await self.Meta.collection.insert(data)
+        try:
+            if self._id:
+                await self.Meta.collection.update({'_id': self._id}, data)
+            else:
+                self.Meta.data['_id'] = await self.Meta.collection.insert(data)
+        except pymongo.errors.DuplicateKeyError as e:
+            field = re.search(r'\$(\w+)_\d+', e.details['errmsg']).group(1)
+            self.fail('unique', field)
 
         return self
 

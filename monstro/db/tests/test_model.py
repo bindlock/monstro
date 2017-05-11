@@ -1,9 +1,8 @@
 import datetime
 import uuid
 
-from monstro.forms import Field
 from monstro.forms.exceptions import ValidationError
-from monstro.db import fields, model, manager
+from monstro.db import fields, model, manager, proxy
 import monstro.testing
 
 
@@ -37,7 +36,7 @@ class ModelTest(monstro.testing.AsyncTestCase):
 
         instance = CustomModel()
 
-        self.assertEqual('test', CustomModel.Meta.collection)
+        self.assertIsInstance(CustomModel.Meta.collection, proxy.MotorProxy)
         self.assertEqual(CustomModel.objects.model, CustomModel)
         self.assertIn('string', instance.Meta.fields)
         self.assertIn('_id', instance.Meta.fields)
@@ -215,19 +214,20 @@ class ModelTest(monstro.testing.AsyncTestCase):
     async def test_validate__unique(self):
 
         class CustomModel(model.Model):
-            string = fields.String(unique=True)
+            key = fields.String(unique=True)
 
             class Meta:
-                collection = 'test'
+                collection = uuid.uuid4().hex
 
-        instance = await CustomModel.objects.create(string=uuid.uuid4().hex)
+        await CustomModel.prepare()
+        instance = await CustomModel.objects.create(key=uuid.uuid4().hex)
 
         with self.assertRaises(ValidationError) as context:
-            await CustomModel.objects.create(string=instance.string)
+            await CustomModel.objects.create(key=instance.key)
 
         self.assertEqual(
-            context.exception.error['string'],
-            Field.errors['unique']
+            context.exception.error['key'],
+            CustomModel.Meta.errors['unique']
         )
 
     async def test_delete(self):
@@ -259,3 +259,16 @@ class ModelTest(monstro.testing.AsyncTestCase):
         instance = await CustomModel.objects.create()
 
         self.assertFalse(instance)
+
+    async def test_prepare(self):
+        class CustomModel(model.Model):
+            key = fields.String(unique=True)
+
+            class Meta:
+                collection = uuid.uuid4().hex
+
+        await CustomModel.prepare()
+
+        indexes = await CustomModel.Meta.collection.index_information()
+
+        self.assertEqual(2, len(indexes))

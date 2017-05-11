@@ -2,7 +2,7 @@ import copy
 
 import pymongo
 
-from . import db, exceptions
+from . import exceptions
 
 
 class QuerySet(object):
@@ -56,7 +56,7 @@ class QuerySet(object):
 
     @property
     def collection(self):
-        return db.database[self.model.Meta.collection]
+        return self.model.Meta.collection
 
     async def __aiter__(self):
         clone = self.clone()

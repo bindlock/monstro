@@ -19,7 +19,7 @@ class MetaModelAPIView(type):
         cls = type.__new__(mcs, name, bases, attributes)
 
         if cls.model:
-            cls.name = cls.model.Meta.collection.replace('_', '-')
+            cls.name = cls.model.Meta.collection.name.replace('_', '-')
             cls.path = cls.name
 
         return cls
