@@ -14,7 +14,7 @@ class SettingsForm(forms.Form):
     secret_key = forms.String()
     debug = forms.Boolean()
 
-    urls = forms.String()
+    urls = forms.PythonPath()
 
     mongodb_uri = forms.String()
     mongodb_client_settings = forms.Map(required=False)
@@ -23,7 +23,7 @@ class SettingsForm(forms.Form):
 
     nosetests_arguments = forms.Array(field=forms.String(), required=False)
 
-    models = forms.Array(field=forms.String(), required=False)
+    models = forms.Array(field=forms.PythonPath(), required=False)
     commands = forms.Map(required=False)
 
 

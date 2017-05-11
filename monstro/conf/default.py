@@ -5,4 +5,4 @@ class Settings(object):
 
     mongodb_uri = 'mongodb://localhost:27017'
 
-    urls = ''
+    urls = 'random'
