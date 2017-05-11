@@ -377,9 +377,33 @@ class Map(Field):
         'invalid': 'Value must be a map',
     }
 
+    def __init__(self, *, schema=None, **kwargs):
+        super().__init__(**kwargs)
+
+        self.schema = schema
+
     async def deserialize(self, value):
         if not isinstance(value, dict):
             self.fail('invalid')
+
+        if self.schema:
+            errors = {}
+
+            for name, field in self.schema.items():
+                try:
+                    value[name] = await field.validate(value.get(name))
+                except ValidationError as e:
+                    errors[name] = e.error
+
+            if errors:
+                raise ValidationError(errors, self.name)
+
+        return value
+
+    async def serialize(self, value):
+        if self.schema:
+            for name, field in self.schema.items():
+                value[name] = await field.serialize(value[name])
 
         return value
 

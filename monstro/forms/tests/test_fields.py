@@ -427,6 +427,34 @@ class MapTest(monstro.testing.AsyncTestCase):
             fields.Map.errors['invalid'].format(field)
         )
 
+    async def test_deserialize__schema(self):
+        field = fields.Map(schema={'id': fields.Integer()})
+
+        self.assertEqual(
+            {'id': 1},
+            await field.deserialize({'id': '1'})
+        )
+
+    async def test_deserialize__schema_error(self):
+        field = fields.Map(schema={'id': fields.Integer()})
+
+        with self.assertRaises(exceptions.ValidationError) as context:
+            await field.deserialize({'id': 'i'})
+
+        self.assertEqual(
+            {'id': fields.Integer.errors['invalid']},
+            context.exception.error,
+        )
+
+    async def test_serialize__schema(self):
+        field = fields.Map(schema={'dt': fields.DateTime()})
+        dt = datetime.datetime.now()
+
+        self.assertEqual(
+            {'dt': dt.isoformat()},
+            await field.serialize({'dt': dt})
+        )
+
 
 class JSONTest(monstro.testing.AsyncTestCase):
 
