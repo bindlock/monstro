@@ -58,6 +58,21 @@ class ModelTest(monstro.testing.AsyncTestCase):
         self.assertEqual({'name': 'test', '_id': None}, data)
         self.assertIsInstance(dt, str)
 
+    async def test_serialize__raw_fields(self):
+        class CustomModel(model.Model):
+            name = fields.String()
+            dt = fields.DateTime()
+
+            class Meta:
+                collection = 'test'
+
+        instance = CustomModel(name='test', dt=datetime.datetime.now())
+        data = await instance.serialize(raw_fields=('dt',))
+        dt = data.pop('dt')
+
+        self.assertEqual({'name': 'test', '_id': None}, data)
+        self.assertIsInstance(dt, datetime.datetime)
+
     async def test_db_serialize(self):
         class CustomModel(model.Model):
             string = fields.String(default='default')
@@ -284,3 +299,15 @@ class ModelTest(monstro.testing.AsyncTestCase):
             CustomModel.Meta.collection.name,
             CustomModel.using(collection=uuid.uuid4().hex).Meta.collection.name
         )
+
+    async def test_deserialize__raw_fields(self):
+        class CustomModel(model.Model):
+            key = fields.Integer()
+
+            class Meta:
+                collection = uuid.uuid4().hex
+
+        instance = CustomModel(key='1')
+        await instance.deserialize(raw_fields=('key',))
+
+        self.assertIsInstance(instance.key, str)

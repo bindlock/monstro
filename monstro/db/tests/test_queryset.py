@@ -2,7 +2,7 @@ import uuid
 import random
 
 import monstro.testing
-from monstro.db import fields, Raw
+from monstro.db import fields
 from monstro.db import model, exceptions
 from monstro.db.queryset import QuerySet
 from monstro.db.proxy import MotorProxy
@@ -172,3 +172,9 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
         await queryset.validate()
 
         self.assertEqual({'key': {'$in': choices}}, queryset.query)
+
+    async def test_raw_fields(self):
+        queryset = self.model.objects.raw_fields('key')
+
+        async for item in queryset:
+            self.assertIsInstance(item.key, str)

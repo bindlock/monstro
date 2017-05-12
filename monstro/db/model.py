@@ -112,10 +112,14 @@ class Model(object, metaclass=MetaModel):
         raise self.ValidationError({field: self.Meta.errors[code]})
 
     @classmethod
-    async def from_db(cls, data):
+    async def from_db(cls, data, raw_fields=()):
         for name, field in cls.Meta.fields.items():
-            if data.get(name):
-                data[name] = await field.db_deserialize(data[name])
+            value = data.get(name)
+
+            if value is None or name in raw_fields:
+                data[name] = value
+            else:
+                data[name] = await field.db_deserialize(value)
 
         return cls(**data)
 
@@ -129,8 +133,11 @@ class Model(object, metaclass=MetaModel):
                     background=True
                 )
 
-    async def deserialize(self):
+    async def deserialize(self, raw_fields=()):
         for name, field in self.Meta.fields.items():
+            if name in raw_fields:
+                continue
+
             value = self.Meta.data.get(name)
 
             if value is None:
@@ -142,29 +149,29 @@ class Model(object, metaclass=MetaModel):
 
         return self
 
-    async def serialize(self):
+    async def serialize(self, raw_fields=()):
         data = {}
 
         for name, field in self.Meta.fields.items():
             value = self.Meta.data.get(name)
 
-            if value is not None:
-                data[name] = await field.serialize(value)
+            if value is None or name in raw_fields:
+                data[name] = value
             else:
-                data[name] = None
+                data[name] = await field.serialize(value)
 
         return data
 
-    async def db_serialize(self):
+    async def db_serialize(self, raw_fields=()):
         data = {}
 
         for name, field in self.Meta.fields.items():
             value = self.Meta.data.get(name)
 
-            if value is not None:
-                data[name] = await field.db_serialize(value)
+            if value is None or name in raw_fields:
+                data[name] = value
             else:
-                data[name] = None
+                data[name] = await field.db_serialize(value)
 
         return data
 

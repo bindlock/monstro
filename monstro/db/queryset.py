@@ -8,7 +8,8 @@ from . import exceptions, expressions
 class QuerySet(object):
 
     def __init__(self, model, query=None, offset=0, limit=0,
-                 fields=None, sorts=None, collection=None, raw=False):
+                 fields=None, sorts=None, collection=None, raw=False,
+                 raw_fields=None):
 
         self.model = model
         self.query = query or {}
@@ -18,6 +19,7 @@ class QuerySet(object):
         self._sorts = sorts or []
         self.collection = collection or self.model.Meta.collection
         self._raw = raw
+        self._raw_fields = raw_fields or []
 
         self._cursor = None
 
@@ -66,7 +68,7 @@ class QuerySet(object):
             if self._raw:
                 return data
 
-            return await self.model.from_db(data)
+            return await self.model.from_db(data, self._raw_fields)
 
         raise StopAsyncIteration()
 
@@ -79,6 +81,7 @@ class QuerySet(object):
         kwargs.setdefault('sorts', copy.copy(self._sorts))
         kwargs.setdefault('collection', self.collection)
         kwargs.setdefault('raw', self._raw)
+        kwargs.setdefault('raw_fields', self._raw_fields)
 
         return QuerySet(**kwargs)
 
