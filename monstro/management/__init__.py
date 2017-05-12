@@ -20,6 +20,8 @@ class Command(object):
         parser.add_argument('-s', '--settings')
         parser.add_argument('-p', '--python-path')
 
+        self.add_arguments(parser)
+
         return parser
 
     def add_arguments(self, parser):
