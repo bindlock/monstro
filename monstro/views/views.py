@@ -91,8 +91,8 @@ class TemplateView(View):
 
         return self.template_name
 
-    async def get_context(self):
-        return {}
+    async def get_context(self, **kwargs):
+        return kwargs
 
     async def get(self, *args, **kwargs):
         self.render(
@@ -105,16 +105,20 @@ class ListView(mixins.ListResponseMixin, TemplateView):
 
     context_object_name = 'pagination'
 
-    async def get_context(self):
-        return {self.context_object_name: await self.paginate()}
+    async def get_context(self, **kwargs):
+        context = {self.context_object_name: await self.paginate()}
+        context.update(kwargs)
+        return context
 
 
 class DetailView(mixins.DetailResponseMixin, TemplateView):
 
     context_object_name = 'object'
 
-    async def get_context(self):
-        return {self.context_object_name: await self.get_object()}
+    async def get_context(self, **kwargs):
+        context = {self.context_object_name: await self.get_object()}
+        context.update(kwargs)
+        return context
 
 
 class FormView(mixins.RedirectResponseMixin, TemplateView):
@@ -136,27 +140,27 @@ class FormView(mixins.RedirectResponseMixin, TemplateView):
     async def get_form(self):
         return (await self.get_form_class())(**await self.get_form_kwargs())  # pylint:disable=E1102
 
-    async def get_context(self):
+    async def get_context(self, **kwargs):
         context = await super().get_context()
-        context['form'] = await self.get_form()
+        context.update(kwargs)
+        context.setdefault('form', await self.get_form())
 
         return context
 
     async def post(self, *args, **kwargs):
         form = await self.get_form()
 
-        try:
-            await form.validate()
-        except form.ValidationError:
-            return await self.form_invalid(form)
+        if await form.is_valid():
+            return await self.form_valid(form)
 
-        return await self.form_valid(form)
+        return await self.form_invalid(form)
 
     async def form_valid(self, form):  # pylint: disable=W0613
         return self.redirect(await self.get_redirect_url(), self.permanent)
 
     async def form_invalid(self, form):
-        self.render(self.template_name, form=form)
+        context = await self.get_context(form=form)
+        self.render(self.template_name, **context)
 
 
 class CreateView(mixins.ModelResponseMixin, FormView):

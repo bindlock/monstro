@@ -8,7 +8,7 @@ class FormError(MonstroError):
 
 class ValidationError(FormError):
 
-    def __init__(self, error=None, field=None):
+    def __init__(self, error, field=None):
         self.error = error
         self.field = field
 

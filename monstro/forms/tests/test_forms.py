@@ -1,3 +1,5 @@
+import unittest.mock
+
 import monstro.testing
 
 from monstro import forms, db
@@ -66,6 +68,38 @@ class FormTest(monstro.testing.AsyncTestCase):
                 }
             }, (await TestForm.get_options())[0]
         )
+
+    async def test_is_valid(self):
+        instance = TestForm(data={'string': 1})
+
+        self.assertFalse(await instance.is_valid())
+
+    async def test_is_valid__exception(self):
+        error = {'number': 'Error'}
+
+        async def mock(self):
+            raise self.ValidationError(error)
+        mock.target = 'monstro.forms.forms.Form.validate'
+
+        instance = TestForm(data={'number': '1'})
+
+        with unittest.mock.patch(mock.target, mock):
+            self.assertFalse(await instance.is_valid())
+
+        self.assertEqual(error, instance.errors)
+
+    async def test_is_valid__exception_string(self):
+
+        async def mock(self):
+            raise self.ValidationError('string')
+        mock.target = 'monstro.forms.forms.Form.validate'
+
+        instance = TestForm(data={'number': '1'})
+
+        with unittest.mock.patch(mock.target, mock):
+            self.assertFalse(await instance.is_valid())
+
+        self.assertEqual({'common': 'string'}, instance.errors)
 
 
 class ModelFormTest(monstro.testing.AsyncTestCase):

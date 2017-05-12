@@ -61,6 +61,17 @@ class Form(object, metaclass=MetaForm):
 
         return metadata
 
+    async def is_valid(self):
+        try:
+            await self.validate()
+        except self.ValidationError as e:
+            if isinstance(e.error, dict):
+                self.errors = e.error
+            elif isinstance(e.error, str):
+                self.errors['common'] = e.error
+        finally:
+            return not bool(self.errors)  # pylint:disable=W0150
+
     async def validate(self):
         for name, field in self.Meta.fields.items():
             value = self.data.get(name)
