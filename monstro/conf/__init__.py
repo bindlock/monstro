@@ -14,7 +14,7 @@ class SettingsForm(forms.Form):
     secret_key = forms.String()
     debug = forms.Boolean()
 
-    urls = forms.PythonPath()
+    urls = forms.String()
 
     databases = forms.Array(
         field=forms.Map(schema={
@@ -29,7 +29,7 @@ class SettingsForm(forms.Form):
 
     nosetests_arguments = forms.Array(field=forms.String(), default=[])
 
-    models = forms.Array(field=forms.PythonPath(), default=[])
+    models = forms.Array(field=forms.String(), default=[])
     commands = forms.Map(default={})
 
 
