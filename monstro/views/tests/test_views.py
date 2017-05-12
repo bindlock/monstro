@@ -73,7 +73,7 @@ class ViewTest(monstro.testing.AsyncHTTPTestCase):
         user = self.run_sync(User.objects.create, value='test')
 
         with mock.patch.object(self.TestView, 'get_secure_cookie') as m:
-            m.return_value = user.value
+            m.return_value = user.value.encode()
             response = self.fetch('/', method='OPTIONS')
 
         self.assertEqual(200, response.code)

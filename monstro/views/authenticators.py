@@ -34,7 +34,10 @@ class CookieAuthenticator(ModelAuthenticatorMixin, Authenticator):
         self.cookie_name = cookie_name
 
     def get_credentials(self, view):
-        return view.get_secure_cookie(self.cookie_name)
+        try:
+            return view.get_secure_cookie(self.cookie_name).decode()
+        except AttributeError:
+            return None
 
 
 class HeaderAuthenticator(ModelAuthenticatorMixin, Authenticator):

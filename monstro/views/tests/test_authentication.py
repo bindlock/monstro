@@ -39,7 +39,7 @@ class CookieAuthenticatorTest(monstro.testing.AsyncTestCase):
         user = await self.User.objects.create(value='cookie')
         view = type(
             'View', (object,),
-            {'get_secure_cookie': lambda *args, **kwargs: user.value}
+            {'get_secure_cookie': lambda *args, **kwargs: user.value.encode()}
         )
 
         auth = await self.authenticator.authenticate(view)
@@ -49,7 +49,7 @@ class CookieAuthenticatorTest(monstro.testing.AsyncTestCase):
     async def test_authenticate__error(self):
         view = type(
             'View', (object,),
-            {'get_secure_cookie': lambda *args, **kwargs: 'wrong'}
+            {'get_secure_cookie': lambda *args, **kwargs: b'wrong'}
         )
 
         auth = await self.authenticator.authenticate(view)
