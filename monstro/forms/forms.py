@@ -73,6 +73,19 @@ class Form(object, metaclass=MetaForm):
         if self.errors:
             raise self.ValidationError(self.errors)
 
+    async def serialize(self):
+        data = {}
+
+        for name, field in self.Meta.fields.items():
+            value = self.data.get(name)
+
+            if value is not None:
+                data[name] = await field.serialize(value)
+            else:
+                data[name] = None
+
+        return data
+
 
 class ModelForm(Form, metaclass=MetaModelForm):
 
@@ -101,19 +114,10 @@ class ModelForm(Form, metaclass=MetaModelForm):
         if self.errors:
             raise self.ValidationError(self.errors)
 
-    async def serialize(self):
-        data = {}
-
-        for name, field in self.Meta.fields.items():
-            value = getattr(self.instance, name, None)
-
-            if value is not None:
-                data[name] = await field.serialize(value)
-            else:
-                data[name] = None
-
-        return data
-
     async def save(self):
         await self.instance.update(**self.data)
+
+        for name in self.Meta.fields.keys():
+            self.data[name] = getattr(self.instance, name)
+
         return self.instance
