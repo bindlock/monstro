@@ -27,6 +27,8 @@ __all__ = (
     'Date',
     'Time',
     'DateTime',
+    'PythonPath',
+    'RegularExpression',
     'Id',
     'ForeignKey',
     'ManyToMany',
@@ -146,6 +148,16 @@ class Date(DateTime, fields.Date):
 
 
 class Time(DateTime, fields.Time):
+
+    pass
+
+
+class PythonPath(ModelField, fields.PythonPath):
+
+    pass
+
+
+class RegularExpression(ModelField, fields.RegularExpression):
 
     pass
 

@@ -28,7 +28,8 @@ __all__ = (
     'Date',
     'Time',
     'DateTime',
-    'PythonPath'
+    'PythonPath',
+    'RegularExpression'
 )
 
 
