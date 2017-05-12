@@ -129,6 +129,9 @@ class DateTime(ModelField, fields.DateTime):
     async def db_serialize(self, value):
         return value
 
+    async def db_deserialize(self, value):
+        return value
+
     async def on_save(self, value):
         if self.auto_now:
             return datetime.datetime.utcnow()
