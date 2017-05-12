@@ -19,6 +19,7 @@ __all__ = (
     'Array',
     'MultipleChoice',
     'URL',
+    'RegexMatch',
     'Host',
     'Slug',
     'Map',
@@ -92,6 +93,11 @@ class MultipleChoice(ModelField, fields.MultipleChoice):  # pylint:disable=R0901
 
 
 class URL(ModelField, fields.URL):
+
+    pass
+
+
+class RegexMatch(ModelField, fields.RegexMatch):
 
     pass
 
