@@ -114,7 +114,7 @@ class Model(object, metaclass=MetaModel):
     @classmethod
     async def from_db(cls, data):
         for name, field in cls.Meta.fields.items():
-            if name in data:
+            if data.get(name):
                 data[name] = await field.db_deserialize(data[name])
 
         return cls(**data)
