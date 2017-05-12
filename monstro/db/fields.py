@@ -199,6 +199,7 @@ class ForeignKey(ModelField, fields.Field):
     }
 
     def __init__(self, *, to, to_field='_id', **kwargs):
+        kwargs.setdefault('index', pymongo.ASCENDING)
         super().__init__(**kwargs)
 
         self.to = to
