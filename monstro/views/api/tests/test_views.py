@@ -454,3 +454,44 @@ class ModelAPIViewWithFormsTest(monstro.testing.AsyncHTTPTestCase):
 
         with self.assertRaises(self.TestModel.DoesNotExist):
             self.run_sync(self.TestModel.objects.get, _id=instance._id)
+
+
+class ModelAPIViewWithAuthenticatorsTest(monstro.testing.AsyncHTTPTestCase):
+
+    class TestModel(db.Model):
+
+        value = db.String()
+
+        class Meta:
+            collection = 'test'
+
+    def get_view(self):
+
+        class TestView(ModelAPIView):  # pylint:disable=R0901
+
+            authenticators = (HeaderAuthenticator(self.TestModel, 'value'),)
+            model = self.TestModel
+
+        return TestView
+
+    def get_app(self):
+        return tornado.web.Application(
+            [tornado.web.url(r'/model/?(?P<_id>\w*)/?', self.get_view())]
+        )
+
+    async def setUp(self):
+        super().setUp()
+
+        self.instance = await self.TestModel.objects.create(value='test')
+
+    def test_get(self):
+        headers = {'Authorization': self.instance.value}
+
+        response = self.fetch('/model/', headers=headers)
+
+        self.assertEqual(200, response.code)
+
+    def test_get__error_authentication(self):
+        response = self.fetch('/model/')
+
+        self.assertEqual(401, response.code)

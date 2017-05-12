@@ -113,6 +113,20 @@ class ModelAPIView(ListResponseMixin,  # pylint:disable=R0901
             name=cls.name
         )
 
+    async def prepare(self):
+        authenticators = await self.get_authenticators()
+
+        if authenticators:
+            for authenticator in authenticators:
+                self.session = await authenticator.authenticate(self)
+
+                if self.session:
+                    break
+            else:
+                raise tornado.web.HTTPError(401)
+
+        await super().prepare()
+
     async def get_paginator(self):
         return paginators.PageNumberPaginator(await self.get_form_class())
 
