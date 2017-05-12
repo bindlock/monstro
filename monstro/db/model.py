@@ -89,6 +89,15 @@ class Model(object, metaclass=MetaModel):
         return self._id == other._id
 
     @classmethod
+    async def get_options(cls):
+        metadata = []
+
+        for field in cls.Meta.fields.values():
+            metadata.append(await field.get_options())
+
+        return metadata
+
+    @classmethod
     def using(cls, *, database='default', collection=None):
         database = databases.get(database)
         collection = database[collection or cls.Meta.collection.name]
