@@ -44,7 +44,12 @@ async def import_settings_class():
         )
 
     settings_class = import_object(path)
-    await SettingsForm(data=dict(settings_class.__dict__)).validate()
+    data = dict(settings_class.__dict__)
+
+    for cls in reversed(settings_class.__mro__):
+        data.update(cls.__dict__)
+
+    await SettingsForm(data=data).validate()
 
     return settings_class
 
