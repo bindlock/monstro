@@ -1,11 +1,13 @@
 import collections
+import copy
 import re
 
 import pymongo.errors
 
-from . import manager, db
+from . import manager
 from .exceptions import ValidationError
 from .fields import ModelField, Id
+from .router import databases
 
 
 class MetaModel(type):
@@ -47,7 +49,8 @@ class MetaModel(type):
         cls.Meta.fields = fields
 
         if hasattr(cls.Meta, 'collection'):
-            cls.Meta.collection = db.database[cls.Meta.collection]
+            alias = getattr(cls.Meta, 'database', 'default')
+            cls.Meta.collection = databases.get(alias)[cls.Meta.collection]
 
         errors = mcs.errors.copy()
         errors.update(getattr(cls.Meta, 'errors', {}))
@@ -84,6 +87,17 @@ class Model(object, metaclass=MetaModel):
 
     def __eq__(self, other):
         return self._id == other._id
+
+    @classmethod
+    def using(cls, *, database='default', collection=None):
+        database = databases.get(database)
+        collection = database[collection or cls.Meta.collection.name]
+        model = copy.deepcopy(cls)
+
+        model.Meta.collection = collection
+        model.objects.bind(model=model)
+
+        return model
 
     def fail(self, code, field):
         raise self.ValidationError({field: self.Meta.errors[code]})

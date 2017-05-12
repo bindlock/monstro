@@ -2,7 +2,7 @@ import uuid
 import random
 
 import monstro.testing
-from monstro.db import fields
+from monstro.db import fields, Raw
 from monstro.db import model, exceptions
 from monstro.db.queryset import QuerySet
 from monstro.db.proxy import MotorProxy
@@ -49,14 +49,24 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
 
     async def test_validate__validation_error(self):
         queryset = self.model.objects.filter(key=None)
+        await queryset.validate()
 
-        self.assertEqual({'key': None}, await queryset.validate())
+        self.assertEqual({'key': None}, queryset.query)
 
-    async def test_validate__nested_query(self):
+    async def test_validate__raw_query(self):
+        query = {'name': 'test'}
+        queryset = self.model.objects.raw(query)
+        await queryset.validate()
+
+        self.assertEqual(query, queryset.query)
+
+    async def test_validate__raw_subquery(self):
         queryset = self.model.objects.filter(name__lte='', name__gte='')
+        await queryset.validate()
 
         self.assertEqual(
-            {'name': {'$gte': '', '$lte': ''}}, await queryset.validate()
+            {'name': {'$gte': '', '$lte': ''}},
+            queryset.query
         )
 
     async def test_cursor_method(self):
@@ -159,5 +169,6 @@ class QuerySetTest(monstro.testing.AsyncTestCase):
     async def test_suffix_query(self):
         choices = ['test', 't']
         queryset = self.model.objects.filter(key__in=choices)
+        await queryset.validate()
 
-        self.assertEqual({'key': {'$in': choices}}, await queryset.validate())
+        self.assertEqual({'key': {'$in': choices}}, queryset.query)

@@ -2,7 +2,7 @@ import datetime
 import uuid
 
 from monstro.forms.exceptions import ValidationError
-from monstro.db import fields, model, manager, proxy
+from monstro.db import fields, model, manager, proxy, databases
 import monstro.testing
 
 
@@ -272,3 +272,17 @@ class ModelTest(monstro.testing.AsyncTestCase):
         indexes = await CustomModel.Meta.collection.index_information()
 
         self.assertEqual(2, len(indexes))
+
+    async def test_using(self):
+        class CustomModel(model.Model):
+            key = fields.String()
+
+            class Meta:
+                collection = uuid.uuid4().hex
+
+        databases.set('another', databases.get().instance)
+
+        self.assertNotEqual(
+            CustomModel.Meta.collection.name,
+            CustomModel.using(collection=uuid.uuid4().hex).Meta.collection.name
+        )

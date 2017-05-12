@@ -3,7 +3,7 @@ import asyncio
 import tornado.ioloop
 import tornado.testing
 
-from monstro.db import db
+from monstro.db import databases
 
 
 __all__ = (
@@ -21,7 +21,8 @@ class AsyncTestCaseMixin(object):
         return self.io_loop.run_sync(lambda: function(*args, **kwargs))
 
     async def tearDown(self):
-        await db.client.drop_database(db.database.name)
+        database = databases.get()
+        await database.client.drop_database(database.name)
 
     def async_method_wrapper(self, function):
         def wrapper(*args, **kwargs):

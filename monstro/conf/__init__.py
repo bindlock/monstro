@@ -16,15 +16,21 @@ class SettingsForm(forms.Form):
 
     urls = forms.PythonPath()
 
-    mongodb_uri = forms.String()
-    mongodb_client_settings = forms.Map(required=False)
+    databases = forms.Array(
+        field=forms.Map(schema={
+            'alias': forms.String(default='default'),
+            'uri': forms.String(),
+            'name': forms.String(),
+            'options': forms.Map(default={})
+        })
+    )
 
-    tornado_application_settings = forms.Map(required=False)
+    tornado_application_settings = forms.Map(default={})
 
-    nosetests_arguments = forms.Array(field=forms.String(), required=False)
+    nosetests_arguments = forms.Array(field=forms.String(), default=[])
 
-    models = forms.Array(field=forms.String(), required=False)
-    commands = forms.Map(required=False)
+    models = forms.Array(field=forms.PythonPath(), default=[])
+    commands = forms.Map(default={})
 
 
 async def import_settings_class():

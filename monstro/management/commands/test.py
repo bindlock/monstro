@@ -4,7 +4,7 @@ import tornado.ioloop
 
 from monstro.conf import settings
 from monstro.management import Command
-import monstro.db.db
+from monstro.db import databases
 
 
 class Test(Command):
@@ -13,8 +13,9 @@ class Test(Command):
         parser.add_argument('modules', nargs='*')
 
     def execute(self, arguments):
-        database_name = 'test_{}'.format(monstro.db.db.database.name)
-        monstro.db.db.database = monstro.db.db.client[database_name]
+        database = databases.get()
+        test_database = database.client['test_{}'.format(database.name)]
+        databases.set('default', test_database)
 
         argv = getattr(settings, 'nosetests_arguments', [])
         argv.extend(arguments.modules)
@@ -22,5 +23,5 @@ class Test(Command):
         nose.run(argv=argv)
 
         tornado.ioloop.IOLoop.current().run_sync(
-            lambda: monstro.db.db.client.drop_database(database_name)
+            lambda: test_database.client.drop_database(test_database.name)
         )

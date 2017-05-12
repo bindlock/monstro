@@ -2,26 +2,23 @@ import copy
 
 import pymongo
 
-from . import exceptions
+from . import exceptions, expressions
 
 
 class QuerySet(object):
 
     def __init__(self, model, query=None, offset=0, limit=0,
-                 fields=None, sorts=None, collection=None, raw=False,
-                 raw_fields=None):
+                 fields=None, sorts=None, collection=None, raw=False):
 
         self.model = model
         self.query = query or {}
         self.offset = offset
         self.limit = limit
-
-        self.fields = fields
+        self.fields = fields or []
         self._sorts = sorts or []
-        self._collection = collection
+        self.collection = collection or self.model.Meta.collection
+        self._raw = raw
 
-        self.raw = raw
-        self._raw_fields = raw_fields or []
         self._cursor = None
 
     def __getattr__(self, attribute):
@@ -31,8 +28,11 @@ class QuerySet(object):
     def cursor(self):
         if not self._cursor:
             self._cursor = self.collection.find(
-                self.query, self.fields or None, skip=self.offset,
-                limit=self.limit, sort=self.sorts
+                self.query,
+                self.fields or None,
+                skip=self.offset,
+                limit=self.limit,
+                sort=self.sorts
             )
 
         return self._cursor
@@ -54,10 +54,6 @@ class QuerySet(object):
 
         return sorts
 
-    @property
-    def collection(self):
-        return self.model.Meta.collection
-
     async def __aiter__(self):
         clone = self.clone()
         await clone.validate()
@@ -67,7 +63,7 @@ class QuerySet(object):
         if await self.cursor.fetch_next:
             data = self.cursor.next_object()
 
-            if self.raw:
+            if self._raw:
                 return data
 
             return await self.model.from_db(data)
@@ -76,56 +72,66 @@ class QuerySet(object):
 
     def clone(self, **kwargs):
         kwargs.setdefault('model', self.model)
-        kwargs.setdefault('query', copy.copy(self.query))
+        kwargs.setdefault('query', copy.deepcopy(self.query))
         kwargs.setdefault('offset', self.offset)
         kwargs.setdefault('limit', self.limit)
         kwargs.setdefault('fields', copy.copy(self.fields))
         kwargs.setdefault('sorts', copy.copy(self._sorts))
-        kwargs.setdefault('raw', self.raw)
-        kwargs.setdefault('collection', self._collection)
-        kwargs.setdefault('raw_fields', self._raw_fields)
+        kwargs.setdefault('collection', self.collection)
+        kwargs.setdefault('raw', self._raw)
+
         return QuerySet(**kwargs)
 
     async def validate(self):
         query = {}
 
+        if isinstance(self.query, expressions.Raw):
+            self.query = self.query.query
+            return
+
         for key, value in self.query.items():
-            if '__' in key:
+            if isinstance(value, expressions.Raw):
+                value = value.query
+            elif '__' in key:
                 key, suffix = key.split('__')
                 value = {'${}'.format(suffix): value}
-            elif not (key.startswith('$') or key == '_id'):
+            elif key != '_id' and value is not None:
                 try:
-                    value = await self.model.Meta.fields[key].serialize(value)
+                    field = self.model.Meta.fields[key]
                 except KeyError:
                     raise exceptions.InvalidQuery(
                         '{} has not field {}'.format(self.model, key)
                     )
-                except:  # pylint: disable=W0702
-                    pass
 
-            if isinstance(query.get(key), dict):
+                value = await field.db_serialize(value)
+
+            if isinstance(query.get(key), dict) and isinstance(value, dict):
                 query[key].update(value)
             else:
                 query[key] = value
 
         self.query = query
 
-        return self.query
-
     def filter(self, **query):
-        _query = self.query.copy()
-        _query.update(query)
-        return self.clone(query=_query)
+        clone = self.clone()
+        clone.query.update(query)
+        return clone
+
+    def raw(self, query):
+        if not isinstance(query, expressions.Raw):
+            query = expressions.Raw(query)
+
+        return self.clone(query=query)
 
     def order_by(self, *fields):
         return self.clone(sorts=self._sorts + list(fields))
 
     def only(self, *fields):
-        return self.clone(fields=(self.fields or []) + list(fields))
+        return self.clone(fields=self.fields + list(fields))
 
     def values(self, *fields):
         queryset = self.only(*fields)
-        queryset.raw = True
+        queryset._raw = True
         return queryset
 
     def raw_fields(self, *fields):
