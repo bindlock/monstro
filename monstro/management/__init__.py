@@ -8,10 +8,7 @@ import sys
 from tornado.util import import_object
 
 from monstro.conf import settings
-from monstro.core.constants import (
-    SETTINGS_ENVIRONMENT_VARIABLE,
-    MONGODB_URI_ENVIRONMENT_VARIABLE
-)
+from monstro.core.constants import SETTINGS_ENVIRONMENT_VARIABLE
 
 
 class Command(object):
@@ -22,7 +19,6 @@ class Command(object):
         parser.add_argument('command')
         parser.add_argument('-s', '--settings')
         parser.add_argument('-p', '--python-path')
-        parser.add_argument('-m', '--mongodb-uri')
 
         return parser
 
@@ -54,9 +50,6 @@ def manage():
 
     if arguments.settings:
         os.environ[SETTINGS_ENVIRONMENT_VARIABLE] = arguments.settings
-
-    if arguments.mongodb_uri:
-        os.environ[MONGODB_URI_ENVIRONMENT_VARIABLE] = arguments.mongodb_uri
 
     if arguments.python_path:
         sys.path.insert(0, arguments.python_path)
