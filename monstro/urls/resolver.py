@@ -42,8 +42,6 @@ class Resolver(object):
             if isinstance(resolver.namespace, str):
                 url.name = '{}:{}'.format(resolver.namespace, url.name)
 
-            print(url.matcher._path)
-
             yield url
 
 
