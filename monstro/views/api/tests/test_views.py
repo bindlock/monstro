@@ -152,9 +152,6 @@ class APIViewWithAuthenticationTest(monstro.testing.AsyncHTTPTestCase):
 
 class ModelAPIViewTest(monstro.testing.AsyncHTTPTestCase):
 
-    drop_database_on_finish = True
-    drop_database_every_test = True
-
     class TestModel(db.Model):
 
         value = db.String()
@@ -331,9 +328,6 @@ class ModelAPIViewTest(monstro.testing.AsyncHTTPTestCase):
 
 class ModelAPIViewWithPaginatorTest(monstro.testing.AsyncHTTPTestCase):
 
-    drop_database_on_finish = True
-    drop_database_every_test = True
-
     class TestModel(db.Model):
 
         value = db.String()
@@ -365,9 +359,6 @@ class ModelAPIViewWithPaginatorTest(monstro.testing.AsyncHTTPTestCase):
 
 
 class ModelAPIViewWithFormsTest(monstro.testing.AsyncHTTPTestCase):
-
-    drop_database_on_finish = True
-    drop_database_every_test = True
 
     class TestModel(db.Model):
 

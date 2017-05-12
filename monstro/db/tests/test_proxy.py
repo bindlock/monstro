@@ -37,8 +37,6 @@ class AutoReconnectTest(unittest.TestCase):
 
 class MotorProxyTest(monstro.testing.AsyncTestCase):
 
-    drop_database_on_finish = True
-
     async def test(self):
         instance = await TestModel.objects.create(name='Test')
 

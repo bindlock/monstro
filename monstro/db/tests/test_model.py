@@ -8,8 +8,6 @@ import monstro.testing
 
 class ModelTest(monstro.testing.AsyncTestCase):
 
-    drop_database_on_finish = True
-
     def test_str(self):
         instance = model.Model()
 

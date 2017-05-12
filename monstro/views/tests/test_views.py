@@ -141,8 +141,6 @@ class ListViewTest(monstro.testing.AsyncHTTPTestCase):
 
 class DetailViewTest(monstro.testing.AsyncHTTPTestCase):
 
-    drop_database_on_finish = True
-
     class TestView(DetailView):
 
         model = User
@@ -173,8 +171,6 @@ class DetailViewTest(monstro.testing.AsyncHTTPTestCase):
 
 
 class FormViewTest(monstro.testing.AsyncHTTPTestCase):
-
-    drop_database_on_finish = True
 
     class TestView(FormView):
 
@@ -221,8 +217,6 @@ class FormViewTest(monstro.testing.AsyncHTTPTestCase):
 
 class CreateViewTest(monstro.testing.AsyncHTTPTestCase):
 
-    drop_database_on_finish = True
-
     class TestView(CreateView):
 
         model = User
@@ -257,8 +251,6 @@ class CreateViewTest(monstro.testing.AsyncHTTPTestCase):
 
 class UpdateViewTest(monstro.testing.AsyncHTTPTestCase):
 
-    drop_database_on_finish = True
-
     class TestView(UpdateView):  # pylint:disable=R0901
 
         model = User
@@ -285,8 +277,6 @@ class UpdateViewTest(monstro.testing.AsyncHTTPTestCase):
 
 
 class DeleteViewTest(monstro.testing.AsyncHTTPTestCase):
-
-    drop_database_on_finish = True
 
     class TestView(DeleteView):
 

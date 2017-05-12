@@ -11,7 +11,10 @@ class RouterTest(unittest.TestCase):
         database = databases.get()
 
         self.assertIsInstance(database, MotorProxy)
-        self.assertEqual(settings.databases[0]['name'], database.name)
+        self.assertEqual(
+            'test_{}'.format(settings.databases[0]['name']),
+            database.name
+        )
 
     def test_set(self):
         database = databases.get()

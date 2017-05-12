@@ -12,7 +12,21 @@ __all__ = (
 )
 
 
-class AsyncTestCaseMixin(object):
+class MetaTestCase(type):
+
+    def __new__(mcs, name, bases, attributes):
+        try:
+            databases.set('default', databases.get('test'))
+        except KeyError:
+            database = databases.get()
+            test_database = database.client['test_{}'.format(database.name)]
+            databases.set('test', test_database)
+            databases.set('default', test_database)
+
+        return super().__new__(mcs, name, bases, attributes)
+
+
+class AsyncTestCaseMixin(object, metaclass=MetaTestCase):
 
     def get_new_ioloop(self):
         return tornado.ioloop.IOLoop.current()

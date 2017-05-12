@@ -43,8 +43,6 @@ class PaginatorTest(monstro.testing.AsyncTestCase):
 
 class PageNumberPaginatorTest(monstro.testing.AsyncTestCase):
 
-    drop_database_on_finish = True
-
     class TestModel(Model):
 
         value = String()
@@ -88,8 +86,6 @@ class PageNumberPaginatorTest(monstro.testing.AsyncTestCase):
 
 
 class LimitOffsetPaginatorTest(monstro.testing.AsyncTestCase):
-
-    drop_database_on_finish = True
 
     class TestModel(Model):
 
