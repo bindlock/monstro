@@ -49,7 +49,10 @@ async def import_settings_class():
     for cls in reversed(settings_class.__mro__):
         data.update(cls.__dict__)
 
-    await SettingsForm(data=data).validate()
+    try:
+        await SettingsForm(data=data).validate()
+    except SettingsForm.ValidationError as e:
+        raise ImproperlyConfigured(e.error)
 
     return settings_class
 

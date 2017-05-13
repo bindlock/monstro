@@ -1,4 +1,5 @@
 import os
+import unittest.mock
 
 from monstro.testing import AsyncTestCase
 from monstro.core.constants import SETTINGS_ENVIRONMENT_VARIABLE
@@ -20,7 +21,12 @@ class SettingsTest(AsyncTestCase):
 
         self.assertEqual(settings, default.Settings)
 
-    async def test_import__error(self):
+    async def test_import__invalid(self):
+        with unittest.mock.patch('monstro.conf.default.Settings.urls', None):
+            with self.assertRaises(ImproperlyConfigured):
+                await import_settings_class()
+
+    async def test_import__not_found(self):
         os.environ.pop(SETTINGS_ENVIRONMENT_VARIABLE)
 
         with self.assertRaises(ImproperlyConfigured):
