@@ -217,7 +217,7 @@ class Model(object, metaclass=MetaModel):
             else:
                 self.Meta.data['_id'] = await self.Meta.collection.insert(data)
         except pymongo.errors.DuplicateKeyError as e:
-            field = re.search(r'\$(\w+)_\d+', e.details['errmsg']).group(1)
+            field = re.search(r'\$(\w+)_\d+', str(e)).group(1)
             self.fail('unique', field)
 
         return self
