@@ -2,7 +2,7 @@ class ModelAPIMixin(object):
 
     async def options(self, *args, **kwargs):
         self.finish({
-            'fields': await self.form_class.get_options(),
+            'fields': await (await self.get_form_class()).get_options(),
             'lookup_field': await self.get_lookup_field(),
             'search_fields': await self.get_search_fields(),
             'search_query_argument': await self.get_search_query_argument()
