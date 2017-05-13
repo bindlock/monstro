@@ -124,7 +124,10 @@ class Model(object, metaclass=MetaModel):
                 except cls.ValidationError:
                     data[name] = None
 
-        return cls(**data)
+        instance = cls(**data)
+        instance.Meta.raw_fields = raw_fields
+
+        return instance
 
     @classmethod
     async def prepare(cls):
@@ -137,6 +140,8 @@ class Model(object, metaclass=MetaModel):
                 )
 
     async def deserialize(self, raw_fields=()):
+        raw_fields = raw_fields or getattr(self.Meta, 'raw_fields', ())
+
         for name, field in self.Meta.fields.items():
             if name in raw_fields:
                 continue
@@ -153,6 +158,7 @@ class Model(object, metaclass=MetaModel):
         return self
 
     async def serialize(self, raw_fields=()):
+        raw_fields = raw_fields or getattr(self.Meta, 'raw_fields', ())
         data = {}
 
         for name, field in self.Meta.fields.items():
@@ -166,6 +172,7 @@ class Model(object, metaclass=MetaModel):
         return data
 
     async def db_serialize(self, raw_fields=()):
+        raw_fields = raw_fields or getattr(self.Meta, 'raw_fields', ())
         data = {}
 
         for name, field in self.Meta.fields.items():
