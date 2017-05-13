@@ -15,7 +15,6 @@ class CreateAPIMixin(ModelAPIMixin):
         form = (await self.get_form_class())(data=self.data)
 
         try:
-            await form.validate()
             await form.save()
         except form.ValidationError as e:
             if isinstance(e.error, str):
@@ -34,7 +33,6 @@ class UpdateAPIMixin(ModelAPIMixin):
         form = (await self.get_form_class())(instance=instance, data=self.data)
 
         try:
-            await form.validate()
             await form.save()
         except form.ValidationError as e:
             if isinstance(e.error, str):

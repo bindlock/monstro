@@ -27,10 +27,10 @@ class MetaModelAPIView(type):
 
 class APIView(views.View):
 
-    form_class = None
+    def initialize(self):
+        super().initialize()
 
-    async def get_form_class(self):
-        return self.form_class
+        self.data = {}
 
     def set_default_headers(self):
         self.set_header('Content-Type', 'application/json')
@@ -51,21 +51,7 @@ class APIView(views.View):
             except (ValueError, UnicodeDecodeError, TypeError):
                 return self.send_error(400, reason='Unable to parse JSON')
 
-            form_class = await self.get_form_class()
-
-            if form_class:
-                form = form_class(data=self.data)
-
-                try:
-                    await form.validate()
-                except form.ValidationError as e:
-                    if isinstance(e.error, str):
-                        return self.send_error(400, reason=e.error)
-
-                    return self.send_error(400, details=e.error)
-
-                self.data = form.data
-                self.data.pop('_id', None)
+            self.data.pop('_id', None)
 
 
 class ListAPIView(ListResponseMixin, APIView):
@@ -106,6 +92,8 @@ class ModelAPIView(ListResponseMixin,  # pylint:disable=R0901
                    mixins.DeleteAPIMixin,
                    APIView, metaclass=MetaModelAPIView):
 
+    form_class = None
+
     @classmethod
     def get_url(cls):
         return tornado.web.url(
@@ -131,13 +119,11 @@ class ModelAPIView(ListResponseMixin,  # pylint:disable=R0901
         return paginators.PageNumberPaginator(await self.get_form_class())
 
     async def get_form_class(self):
-        form_class = await super().get_form_class()
-
-        if not form_class:
+        if not self.form_class:
             Meta = type('Meta', (), {'model': await self.get_model()})
-            form_class = type('ModelForm', (ModelForm,), {'Meta': Meta})
+            self.form_class = type('ModelForm', (ModelForm,), {'Meta': Meta})
 
-        return form_class
+        return self.form_class
 
     async def get(self, *args, **kwargs):
         if self.path_kwargs.get(self.lookup_field):

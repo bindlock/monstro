@@ -13,21 +13,9 @@ from monstro.views.api import APIView, ModelAPIView
 
 class APIViewTest(monstro.testing.AsyncHTTPTestCase):
 
-    class TestForm(forms.Form):
-
-        value = forms.String()
-
-        async def validate(self):
-            await super().validate()
-
-            if self.data['value'] == 'wrong':
-                raise self.ValidationError('wrong')
-
     def get_app(self):
 
         class TestView(APIView):
-
-            form_class = self.TestForm
 
             async def get(self):
                 self.write({'key': 'value'})
@@ -75,14 +63,6 @@ class APIViewTest(monstro.testing.AsyncHTTPTestCase):
                 'code': 400
             }, data
         )
-
-    def test_post__validate(self):
-        payload = {'value': 'wrong'}
-        response = self.fetch('/', method='POST', body=json.dumps(payload))
-        data = json.loads(response.body.decode('utf-8'))
-
-        self.assertEqual(400, response.code)
-        self.assertEqual({'message': 'wrong'}, data['details'])
 
     def test_put(self):
         payload = {'value': 'test'}
