@@ -581,10 +581,29 @@ class PythonPathTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual('monstro.forms.fields', await field.serialize(fields))
 
+    async def test_serialize__class(self):
+        field = fields.PythonPath()
+
+        self.assertEqual(
+            fields.PythonPath.__module__,
+            await field.serialize(fields.PythonPath)
+        )
+
     async def test_deserialize(self):
         field = fields.PythonPath()
 
         self.assertIs(await field.deserialize('monstro.forms.fields'), fields)
+
+    async def test_deserialize__import_error(self):
+        field = fields.PythonPath()
+
+        with self.assertRaises(exceptions.ValidationError) as context:
+            await field.deserialize('monstro.wrong')
+
+        self.assertEqual(
+            context.exception.error,
+            field.errors['import'].format(field)
+        )
 
 
 class RegularExpressionTest(monstro.testing.AsyncTestCase):

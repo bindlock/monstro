@@ -166,7 +166,7 @@ class FormView(mixins.RedirectResponseMixin, TemplateView):
 class CreateView(mixins.ModelResponseMixin, FormView):
 
     async def get_form_class(self):
-        if self.form_class:
+        if self.form_class:  # pragma: no cover
             return self.form_class
 
         Meta = type('Meta', (), {'model': await self.get_model()})

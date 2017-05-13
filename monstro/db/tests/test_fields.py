@@ -44,6 +44,12 @@ class DateTimeTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(dt, await field.db_serialize(dt))
 
+    async def test_db_deserialize(self):
+        field = fields.DateTime()
+        dt = datetime.datetime(2015, 7, 13)
+
+        self.assertEqual(dt, await field.db_deserialize(dt))
+
 
 class IdTest(monstro.testing.AsyncTestCase):
 

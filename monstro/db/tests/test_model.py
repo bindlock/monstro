@@ -311,3 +311,38 @@ class ModelTest(monstro.testing.AsyncTestCase):
         await instance.deserialize(raw_fields=('key',))
 
         self.assertIsInstance(instance.key, str)
+
+    async def test_get_options(self):
+        class CustomModel(model.Model):
+            key = fields.Integer(label='Label', help_text='Help')
+
+            class Meta:
+                collection = uuid.uuid4().hex
+
+        self.assertEqual(
+            {
+                'name': 'key',
+                'label': 'Label',
+                'help_text': 'Help',
+                'required': True,
+                'read_only': False,
+                'default': None,
+                'widget': {
+                    'attrs': {'type': 'text'},
+                    'tag': 'input',
+                }
+            }, (await CustomModel.get_options())[1]
+        )
+
+    async def test_from_db(self):
+        class CustomModel(model.Model):
+            integer = fields.Integer()
+            string = fields.String()
+
+            class Meta:
+                collection = uuid.uuid4().hex
+
+        instance = await CustomModel.from_db({'integer': 'j', 'string': 'k'})
+
+        self.assertIsInstance(instance.string, str)
+        self.assertIs(instance.integer, None)

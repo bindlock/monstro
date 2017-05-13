@@ -57,6 +57,10 @@ class ViewTest(monstro.testing.AsyncHTTPTestCase):
         async def options(self):
             self.write(self.request.method)
 
+        @View.authenticated('http://github.com')
+        async def head(self):
+            self.write(self.request.method)
+
     def get_app(self):
         return tornado.web.Application(
             [tornado.web.url(r'/', self.TestView)],
@@ -81,6 +85,11 @@ class ViewTest(monstro.testing.AsyncHTTPTestCase):
 
     def test_get_auth__error(self):
         response = self.fetch('/', method='OPTIONS', follow_redirects=False)
+
+        self.assertEqual(302, response.code)
+
+    def test_get_auth__error__absolute_url(self):
+        response = self.fetch('/', method='HEAD', follow_redirects=False)
 
         self.assertEqual(302, response.code)
 
