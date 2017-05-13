@@ -39,7 +39,7 @@ class APIView(views.View):
         self.write({
             'status': 'error',
             'code': status_code,
-            'details': details or {'message': self._reason}
+            'details': details or {'common': self._reason}
         })
 
     async def prepare(self):

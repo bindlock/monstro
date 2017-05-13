@@ -58,7 +58,7 @@ class APIViewTest(monstro.testing.AsyncHTTPTestCase):
         self.assertEqual(400, response.code)
         self.assertEqual(
             {
-                'details': {'message': 'Unable to parse JSON'},
+                'details': {'common': 'Unable to parse JSON'},
                 'status': 'error',
                 'code': 400
             }, data
@@ -127,7 +127,7 @@ class APIViewWithAuthenticationTest(monstro.testing.AsyncHTTPTestCase):
 
         self.assertEqual('error', data['status'])
         self.assertEqual(401, data['code'])
-        self.assertIn('Unauthorized', data['details']['message'])
+        self.assertIn('Unauthorized', data['details']['common'])
 
 
 class ModelAPIViewTest(monstro.testing.AsyncHTTPTestCase):
@@ -247,7 +247,7 @@ class ModelAPIViewTest(monstro.testing.AsyncHTTPTestCase):
         data = json.loads(response.body.decode('utf-8'))
 
         self.assertEqual(400, response.code)
-        self.assertEqual({'message': 'wrong'}, data['details'])
+        self.assertEqual({'common': 'wrong'}, data['details'])
 
     def test_put(self):
         instance = self.run_sync(self.TestModel.objects.create, value='test')
@@ -287,7 +287,7 @@ class ModelAPIViewTest(monstro.testing.AsyncHTTPTestCase):
         data = json.loads(response.body.decode('utf-8'))
 
         self.assertEqual(400, response.code)
-        self.assertEqual({'message': 'wrong'}, data['details'])
+        self.assertEqual({'common': 'wrong'}, data['details'])
 
     def test_patch(self):
         instance = self.run_sync(self.TestModel.objects.create, value='test')
