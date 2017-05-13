@@ -55,7 +55,7 @@ class Field(object):
         self.validators = validators or []
         self.widget = widget or self.widget
 
-        if self._default is not None:
+        if self.read_only or self._default is not None:
             self.required = False
 
         _errors = {}
