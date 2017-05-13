@@ -119,7 +119,10 @@ class Model(object, metaclass=MetaModel):
             if value is None or name in raw_fields:
                 data[name] = value
             else:
-                data[name] = await field.db_deserialize(value)
+                try:
+                    data[name] = await field.db_deserialize(value)
+                except cls.ValidationError:
+                    data[name] = None
 
         return cls(**data)
 
