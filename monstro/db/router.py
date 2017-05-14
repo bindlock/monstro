@@ -1,6 +1,9 @@
+import os
+
 import motor
 
 from monstro.conf import settings
+from monstro.core.constants import TEST_ENVIRONMENT_VARIABLE
 
 from . import proxy
 
@@ -8,6 +11,8 @@ from . import proxy
 class Router(object):
 
     def __init__(self):
+        test = TEST_ENVIRONMENT_VARIABLE in os.environ
+
         self.__databases = {}
 
         for database in settings.databases:
@@ -17,7 +22,13 @@ class Router(object):
                     **database.get('options')
                 )
             )
-            self.set(database['alias'], client[database['name']])
+
+            name = database['name']
+
+            if test:
+                name = 'test_{}'.format(name)
+
+            self.set(database['alias'], client[name])
 
     def get(self, alias='default'):
         return self.__databases[alias]
