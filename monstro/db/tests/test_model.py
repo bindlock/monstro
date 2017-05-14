@@ -58,21 +58,6 @@ class ModelTest(monstro.testing.AsyncTestCase):
         self.assertEqual({'name': 'test', '_id': None}, data)
         self.assertIsInstance(dt, str)
 
-    async def test_serialize__raw_fields(self):
-        class CustomModel(model.Model):
-            name = fields.String()
-            dt = fields.DateTime()
-
-            class Meta:
-                collection = 'test'
-
-        instance = CustomModel(name='test', dt=datetime.datetime.now())
-        data = await instance.serialize(raw_fields=('dt',))
-        dt = data.pop('dt')
-
-        self.assertEqual({'name': 'test', '_id': None}, data)
-        self.assertIsInstance(dt, datetime.datetime)
-
     async def test_db_serialize(self):
         class CustomModel(model.Model):
             string = fields.String(default='default')
@@ -227,16 +212,20 @@ class ModelTest(monstro.testing.AsyncTestCase):
     async def test_validate__unique(self):
 
         class CustomModel(model.Model):
-            key = fields.String(unique=True)
+            key = fields.String(
+                unique=True,
+                read_only=True,
+                default=uuid.uuid4().hex
+            )
 
             class Meta:
                 collection = uuid.uuid4().hex
 
         await CustomModel.prepare()
-        instance = await CustomModel.objects.create(key=uuid.uuid4().hex)
+        await CustomModel.objects.create()
 
         with self.assertRaises(ValidationError) as context:
-            await CustomModel.objects.create(key=instance.key)
+            await CustomModel.objects.create()
 
         self.assertEqual(
             context.exception.error['key'],
@@ -299,18 +288,6 @@ class ModelTest(monstro.testing.AsyncTestCase):
             CustomModel.Meta.collection.name,
             CustomModel.using(collection=uuid.uuid4().hex).Meta.collection.name
         )
-
-    async def test_deserialize__raw_fields(self):
-        class CustomModel(model.Model):
-            key = fields.Integer()
-
-            class Meta:
-                collection = uuid.uuid4().hex
-
-        instance = CustomModel(key='1')
-        await instance.deserialize(raw_fields=('key',))
-
-        self.assertIsInstance(instance.key, str)
 
     async def test_get_options(self):
         class CustomModel(model.Model):

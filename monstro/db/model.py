@@ -142,46 +142,34 @@ class Model(object, metaclass=MetaModel):
                     background=True
                 )
 
-    async def deserialize(self, raw_fields=()):
-        raw_fields = raw_fields or getattr(self.Meta, 'raw_fields', ())
-
+    async def deserialize(self):
         for name, field in self.Meta.fields.items():
-            if name in raw_fields:
-                continue
+            value = self.Meta.data.get(name, field.default)
 
-            value = self.Meta.data.get(name)
-
-            if value is None:
-                value = field.default
-            else:
-                value = await field.deserialize(value)
-
-            self.Meta.data[name] = value
+            self.Meta.data[name] = await field.deserialize(value)
 
         return self
 
-    async def serialize(self, raw_fields=()):
-        raw_fields = raw_fields or getattr(self.Meta, 'raw_fields', ())
+    async def serialize(self):
         data = {}
 
         for name, field in self.Meta.fields.items():
             value = self.Meta.data.get(name)
 
-            if value is None or name in raw_fields:
+            if value is None:
                 data[name] = value
             else:
                 data[name] = await field.serialize(value)
 
         return data
 
-    async def db_serialize(self, raw_fields=()):
-        raw_fields = raw_fields or getattr(self.Meta, 'raw_fields', ())
+    async def db_serialize(self):
         data = {}
 
         for name, field in self.Meta.fields.items():
             value = self.Meta.data.get(name)
 
-            if value is None or name in raw_fields:
+            if value is None:
                 data[name] = value
             else:
                 data[name] = await field.db_serialize(value)
@@ -190,8 +178,13 @@ class Model(object, metaclass=MetaModel):
 
     async def validate(self):
         for name, field in self.Meta.fields.items():
+            value = self.Meta.data.get(name)
+
+            if field.read_only and name != '_id':
+                value = field.default
+
             try:
-                value = await field.validate(self.Meta.data.get(name))
+                value = await field.validate(value)
             except self.ValidationError as e:
                 raise self.ValidationError({name: e.error})
 

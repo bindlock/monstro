@@ -127,7 +127,9 @@ class ModelForm(Form, metaclass=MetaModelForm):
             raise self.ValidationError(self.errors)
 
     async def save(self):
-        await self.instance.update(**self.data)
+        self.data['_id'] = self.instance._id
+        self.instance = self.Meta.model(**self.data)
+        await self.instance.save()
 
         for name in self.Meta.fields.keys():
             self.data[name] = getattr(self.instance, name)
@@ -137,8 +139,7 @@ class ModelForm(Form, metaclass=MetaModelForm):
     async def serialize(self, raw_fields=()):
         raw_fields = (
             raw_fields
-            or getattr(self.Meta, 'raw_fields', ())
-            or getattr(self.instance, 'raw_fields', ())
+            or getattr(getattr(self.instance, 'Meta', {}), 'raw_fields', ())
         )
 
         return await super().serialize(raw_fields)
