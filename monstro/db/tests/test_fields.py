@@ -125,6 +125,13 @@ class ForeignKeyTest(monstro.testing.AsyncTestCase):
 
         self.assertEqual(value.name, self.instance.name)
 
+    async def test_deserialize__self(self):
+        field = fields.ForeignKey(to='self')
+        field.bind(model=self.model)
+        value = await field.deserialize(self.instance._id)
+
+        self.assertEqual(value._id, self.instance._id)
+
     async def test_deserialize__from_instance(self):
         field = fields.ForeignKey(to=self.model, to_field='name')
         value = await field.deserialize(self.instance)

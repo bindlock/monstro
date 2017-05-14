@@ -40,6 +40,9 @@ class MetaModel(type):
 
         cls = super().__new__(mcs, name, bases, attributes)
 
+        for field in fields.values():
+            field.bind(model=cls)
+
         cls.ValidationError = ValidationError
         cls.DoesNotExist = type('DoesNotExist', (Exception,), {})
 
