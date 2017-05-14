@@ -146,7 +146,10 @@ class Model(object, metaclass=MetaModel):
         for name, field in self.Meta.fields.items():
             value = self.Meta.data.get(name, field.default)
 
-            self.Meta.data[name] = await field.deserialize(value)
+            if value is not None:
+                value = await field.deserialize(value)
+
+            self.Meta.data[name] = value
 
         return self
 
@@ -190,6 +193,7 @@ class Model(object, metaclass=MetaModel):
 
             self.Meta.data[name] = value
 
+        self.Meta.raw_fields = ()
         return self
 
     async def on_save(self):
