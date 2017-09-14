@@ -40,6 +40,9 @@ class MetaModel(type):
 
         cls = super().__new__(mcs, name, bases, attributes)
 
+        for field in fields.values():
+            field.bind(model=cls)
+
         cls.ValidationError = ValidationError
         cls.DoesNotExist = type('DoesNotExist', (Exception,), {})
 
@@ -124,7 +127,10 @@ class Model(object, metaclass=MetaModel):
                 except cls.ValidationError:
                     data[name] = None
 
-        return cls(**data)
+        instance = cls(**data)
+        instance.Meta.raw_fields = raw_fields
+
+        return instance
 
     @classmethod
     async def prepare(cls):
@@ -136,42 +142,37 @@ class Model(object, metaclass=MetaModel):
                     background=True
                 )
 
-    async def deserialize(self, raw_fields=()):
+    async def deserialize(self):
         for name, field in self.Meta.fields.items():
-            if name in raw_fields:
-                continue
+            value = self.Meta.data.get(name, field.default)
 
-            value = self.Meta.data.get(name)
-
-            if value is None:
-                value = field.default
-            else:
+            if value is not None:
                 value = await field.deserialize(value)
 
             self.Meta.data[name] = value
 
         return self
 
-    async def serialize(self, raw_fields=()):
+    async def serialize(self):
         data = {}
 
         for name, field in self.Meta.fields.items():
             value = self.Meta.data.get(name)
 
-            if value is None or name in raw_fields:
+            if value is None:
                 data[name] = value
             else:
                 data[name] = await field.serialize(value)
 
         return data
 
-    async def db_serialize(self, raw_fields=()):
+    async def db_serialize(self):
         data = {}
 
         for name, field in self.Meta.fields.items():
             value = self.Meta.data.get(name)
 
-            if value is None or name in raw_fields:
+            if value is None:
                 data[name] = value
             else:
                 data[name] = await field.db_serialize(value)
@@ -180,13 +181,19 @@ class Model(object, metaclass=MetaModel):
 
     async def validate(self):
         for name, field in self.Meta.fields.items():
+            value = self.Meta.data.get(name)
+
+            if field.read_only and name != '_id':
+                value = field.default
+
             try:
-                value = await field.validate(self.Meta.data.get(name))
+                value = await field.validate(value)
             except self.ValidationError as e:
                 raise self.ValidationError({name: e.error})
 
             self.Meta.data[name] = value
 
+        self.Meta.raw_fields = ()
         return self
 
     async def on_save(self):
@@ -217,7 +224,7 @@ class Model(object, metaclass=MetaModel):
             else:
                 self.Meta.data['_id'] = await self.Meta.collection.insert(data)
         except pymongo.errors.DuplicateKeyError as e:
-            field = re.search(r'\$(\w+)_\d+', e.details['errmsg']).group(1)
+            field = re.search(r'\$(\w+)_\d+', str(e)).group(1)
             self.fail('unique', field)
 
         return self

@@ -46,6 +46,8 @@ class ModelField(object):
         if self.unique:
             self.index = pymongo.ASCENDING
 
+        self.model = None
+
     async def db_deserialize(self, value):
         return await self.deserialize(value)
 

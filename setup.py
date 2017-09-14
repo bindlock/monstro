@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-# coding=utf-8
 
 import os
 
 from setuptools import setup, find_packages
 
-VERSION = '3.5.1'
+VERSION = '4.0.8'
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
