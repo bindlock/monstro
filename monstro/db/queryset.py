@@ -95,6 +95,8 @@ class QuerySet(object):
         for key, value in self.query.items():
             if isinstance(value, expressions.Raw):
                 value = value.query
+            elif key.startswith('$'):
+                pass
             elif '__' in key:
                 key, suffix = key.split('__')
                 value = {'${}'.format(suffix): value}
