@@ -69,7 +69,7 @@ class ModelTest(monstro.testing.AsyncTestCase):
         instance = CustomModel(number=1)
         data = await instance.db_serialize()
 
-        self.assertEqual(None, data['string'])
+        self.assertNotIn('string', data)
         self.assertEqual(instance.number, data['number'])
 
     async def test_save__force(self):
@@ -231,6 +231,20 @@ class ModelTest(monstro.testing.AsyncTestCase):
             context.exception.error['key'],
             CustomModel.Meta.errors['unique']
         )
+
+    async def test_validate__unique__null(self):
+
+        class CustomModel(model.Model):
+            key = fields.String(unique=True, required=False)
+
+            class Meta:
+                collection = uuid.uuid4().hex
+
+        await CustomModel.prepare()
+        await CustomModel.objects.create()
+        await CustomModel.objects.create()
+
+        self.assertEqual(2, await CustomModel.objects.count())
 
     async def test_delete(self):
         class CustomModel(model.Model):
