@@ -139,6 +139,7 @@ class Model(object, metaclass=MetaModel):
                 await cls.Meta.collection.create_index(
                     ((name, field.index),),
                     unique=field.unique,
+                    sparse=True,
                     background=True
                 )
 
@@ -172,9 +173,7 @@ class Model(object, metaclass=MetaModel):
         for name, field in self.Meta.fields.items():
             value = self.Meta.data.get(name)
 
-            if value is None:
-                data[name] = value
-            else:
+            if value is not None:
                 data[name] = await field.db_serialize(value)
 
         return data
@@ -216,7 +215,7 @@ class Model(object, metaclass=MetaModel):
             await self.validate()
 
         data = await self.db_serialize()
-        data.pop('_id')
+        data.pop('_id', None)
 
         try:
             if self._id:
@@ -224,7 +223,7 @@ class Model(object, metaclass=MetaModel):
             else:
                 self.Meta.data['_id'] = await self.Meta.collection.insert(data)
         except pymongo.errors.DuplicateKeyError as e:
-            field = re.search(r'\$(\w+)_\d+', str(e)).group(1)
+            field = re.search(r'\$?(\w+)_\d+', str(e)).group(1)
             self.fail('unique', field)
 
         return self
