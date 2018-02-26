@@ -61,9 +61,7 @@ class ListResponseMixin(QuerysetResponseMixin):
     async def get_search_query_argument(self):
         return self.search_query_argument
 
-    async def paginate(self):
-        queryset = await self.get_queryset()
-        paginator = await self.get_paginator()
+    async def filter_queryset(self, queryset):
         search_fields = await self.get_search_fields()
         search_query_argument = await self.get_search_query_argument()
         search_query = self.get_query_argument(search_query_argument, '')
@@ -71,6 +69,12 @@ class ListResponseMixin(QuerysetResponseMixin):
         if search_fields and search_query:
             query = Or(Regex({f: search_query for f in search_fields}))
             queryset = queryset.filter(**query)
+
+        return queryset
+
+    async def paginate(self):
+        queryset = await self.filter_queryset(await self.get_queryset())
+        paginator = await self.get_paginator()
 
         if paginator:
             paginator.bind(**self.request.GET)
