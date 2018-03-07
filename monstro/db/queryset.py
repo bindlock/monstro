@@ -46,7 +46,9 @@ class QuerySet(object):
         for sort in self._sorts:
             if sort.lstrip('-') not in self.model.Meta.fields:
                 raise exceptions.InvalidQuery(
-                    '{} has not field {}'.format(self.model, sort)
+                    '{} has not field {}'.format(self.model, sort),
+                    model=self.model,
+                    field=sort,
                 )
 
             if sort.startswith('-'):
@@ -105,7 +107,9 @@ class QuerySet(object):
                     field = self.model.Meta.fields[key]
                 except KeyError:
                     raise exceptions.InvalidQuery(
-                        '{} has not field {}'.format(self.model, key)
+                        '{} has not field {}'.format(self.model, key),
+                        model=self.model,
+                        field=key,
                     )
 
                 value = await field.db_serialize(value)

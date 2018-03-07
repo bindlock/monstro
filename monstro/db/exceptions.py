@@ -16,4 +16,9 @@ class ORMError(MonstroError):
 
 class InvalidQuery(ORMError):
 
-    pass
+    def __init__(self, message, model, field, query=None):
+        super().__init__(message)
+
+        self.model = model
+        self.field = field
+        self.query = query or {}
