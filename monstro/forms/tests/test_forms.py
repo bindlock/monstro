@@ -21,6 +21,12 @@ class TestModel(db.Model):
     class Meta:
         collection = 'test'
 
+    async def validate(self):
+        await super().validate()
+
+        if self.string == 'random':
+            self.string = '42'
+
 
 class TestModelForm(forms.ModelForm):
 
@@ -123,3 +129,13 @@ class ModelFormTest(monstro.testing.AsyncTestCase):
             instance.data['string'],
             TestForm.Meta.fields['string'].default
         )
+
+    async def test_save__model_validate_call(self):
+        instance = TestModelForm(
+            instance=TestModel(string='test', number=1),
+            data={'float': '1', 'string': 'random'}
+        )
+
+        await instance.save()
+
+        self.assertEqual('42', (await instance.serialize())['string'])
