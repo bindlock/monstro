@@ -127,12 +127,10 @@ class ModelForm(Form, metaclass=MetaModelForm):
             raise self.ValidationError(self.errors)
 
     async def save(self):
-        self.data['_id'] = self.instance._id
-        self.instance = self.Meta.model(**self.data)
-        await self.instance.save()
+        await self.instance.update(**self.data)
 
         for name in self.Meta.fields.keys():
-            self.data[name] = getattr(self.instance, name)
+            self.data[name] = self.instance.Meta.data[name]
 
         return self.instance
 
