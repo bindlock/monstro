@@ -1,8 +1,8 @@
 # Monstro #
 *Web framework based on Tornado and MongoDB*
 
-[![Build Status](https://travis-ci.org/pyvim/monstro.svg?branch=master)](https://travis-ci.org/pyvim/monstro)
-[![Coverage Status](https://coveralls.io/repos/github/pyvim/monstro/badge.svg?branch=master)](https://coveralls.io/github/pyvim/monstro?branch=master)
+[![Build Status](https://travis-ci.org/bindlock/monstro.svg?branch=master)](https://travis-ci.org/pyvim/monstro)
+[![Coverage Status](https://coveralls.io/repos/github/bindlock/monstro/badge.svg?branch=master)](https://coveralls.io/github/bindlock/monstro?branch=master)
 [![PyPI](http://img.shields.io/pypi/v/monstro.svg?style=flat)](https://pypi.python.org/pypi/monstro)
 [![Documentation Status](http://readthedocs.org/projects/monstro/badge/?version=latest)](http://monstro.readthedocs.org/en/latest/?badge=latest)
 
