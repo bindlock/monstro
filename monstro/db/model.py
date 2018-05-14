@@ -74,8 +74,12 @@ class Model(object, metaclass=MetaModel):
 
     def __getattr__(self, attribute):
         if attribute in self.Meta.fields:
-            field = self.Meta.fields[attribute]
-            return self.Meta.data.get(attribute, field.default)
+            try:
+                return self.Meta.data[attribute]
+            except KeyError:
+                value = self.Meta.fields[attribute].default
+                self.Meta.data[attribute] = value
+                return value
 
         raise AttributeError(attribute)
 
