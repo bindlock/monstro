@@ -43,6 +43,15 @@ class ModelTest(monstro.testing.AsyncTestCase):
         with self.assertRaises(AttributeError):
             model.Model().none()
 
+    def test_getattr__default_list(self):
+        class CustomModel(model.Model):
+            array = fields.Array(default=list)
+
+        instance = CustomModel()
+        value = instance.array
+
+        self.assertIs(value, instance.array)
+
     async def test_serialize(self):
         class CustomModel(model.Model):
             name = fields.String()
