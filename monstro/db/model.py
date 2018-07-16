@@ -108,7 +108,7 @@ class Model(object, metaclass=MetaModel):
     def using(cls, *, database='default', collection=None):
         database = databases.get(database)
         collection = database[collection or cls.Meta.collection.name]
-        model = copy.deepcopy(cls)
+        model = cls.__new__(cls)
 
         model.Meta.collection = collection
         model.objects.bind(model=model)
