@@ -306,10 +306,11 @@ class ModelTest(monstro.testing.AsyncTestCase):
                 collection = uuid.uuid4().hex
 
         databases.set('another', databases.get().instance)
+        cls = CustomModel.using(collection=uuid.uuid4().hex)
 
         self.assertNotEqual(
             CustomModel.Meta.collection.name,
-            CustomModel.using(collection=uuid.uuid4().hex).Meta.collection.name
+            cls.Meta.collection.name
         )
 
     async def test_get_options(self):
