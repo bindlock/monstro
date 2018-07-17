@@ -1,2 +1,2 @@
-motor
+motor<2.0.0
 tornado<4.6
